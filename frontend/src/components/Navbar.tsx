@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { PiGear } from "react-icons/pi";
+import ModeSwitch from "@/components/ModeSwitch";
 
 // Custom hook for scroll direction
 function useScrollDirection() {
@@ -63,7 +64,7 @@ export function Navbar({ keyword = "default" }) {
           <div className="flex-1"></div>
 
           {/* Navbar options for default navbar */}
-          <ul className="absolute left-0 top-full -z-10 flex w-full -translate-y-full flex-col flex-nowrap items-center border-[#222233]/40 bg-[#222233]/80 pb-3 text-xl font-semibold opacity-0 shadow-lg backdrop-blur-[0.5rem] transition-all group-data-[state=open]:translate-y-0 group-data-[state=open]:opacity-100 sm:relative sm:z-auto sm:w-auto sm:translate-y-0 sm:flex-row sm:justify-end sm:gap-[inherit] sm:p-0 sm:opacity-100 sm:shadow-none">
+          <ul className="absolute left-0 top-full -z-10 flex w-full -translate-y-full flex-col flex-nowrap items-center border-[#222233]/40 bg-[#222233]/80 pb-3 text-xl font-semibold opacity-0 shadow-lg backdrop-blur-[0.5rem] transition-all group-data-[state=open]:translate-y-0 group-data-[state=open]:opacity-100 dark:bg-dm-light-gray sm:relative sm:z-auto sm:w-auto sm:translate-y-0 sm:flex-row sm:justify-end sm:gap-[inherit] sm:p-0 sm:opacity-100 sm:shadow-none">
             <li className="contents">
               <Link
                 className="px-6 py-3 text-center text-white transition hover:text-[#e4212b] sm:rounded-lg sm:py-1 md:px-4"
@@ -74,12 +75,7 @@ export function Navbar({ keyword = "default" }) {
             </li>
 
             <li className="contents">
-              <Link href="/settings">
-                <PiGear
-                  size={40}
-                  className="fill-white transition hover:fill-[#e4212b]"
-                />
-              </Link>
+              <ModeSwitch />
             </li>
           </ul>
 
@@ -87,15 +83,10 @@ export function Navbar({ keyword = "default" }) {
           <div className="relative flex flex-row-reverse items-center justify-around text-xl font-semibold sm:hidden sm:flex-row">
             {/* Hamburger button for mobile */}
 
-            <Link href="/settings">
-              <PiGear
-                size={40}
-                className="fill-white transition hover:fill-[#e4212b]"
-              />
-            </Link>
+            <ModeSwitch />
 
             <Link
-              className="px-2 py-3 text-center text-white transition hover:text-[#e4212b] sm:hidden sm:rounded-lg sm:py-1 md:px-4"
+              className="text-nowrap px-2 py-3 text-center text-white transition hover:text-[#e4212b] sm:hidden sm:rounded-lg sm:py-1 md:px-4"
               href="/plans"
             >
               My Plans
@@ -205,7 +196,7 @@ export function Navbar({ keyword = "default" }) {
 
   return (
     <nav
-      className="data group sticky z-[999] flex w-full -translate-y-[130%] items-center rounded-none border border-[#222233] bg-[#222233] px-3 shadow-lg shadow-black/5 backdrop-blur-[0.5rem] transition-all data-[scroll=up]:translate-y-0 data-[state=open]:shadow-none data-[state=open]:delay-0 sm:top-5 sm:mx-auto sm:max-w-[calc(min(1280px,100vw)-4rem)] sm:rounded-full sm:px-6 sm:py-2"
+      className="data group sticky z-[999] flex w-full -translate-y-[130%] items-center rounded-none border border-[#222233] bg-[#222233] px-3 shadow-lg shadow-black/5 backdrop-blur-[0.5rem] transition-all data-[scroll=up]:translate-y-0 data-[state=open]:shadow-none data-[state=open]:delay-0 dark:border-dm-light-gray dark:bg-dm-light-gray sm:top-5 sm:mx-auto sm:max-w-[calc(min(1280px,100vw)-4rem)] sm:rounded-full sm:px-6 sm:py-2"
       data-scroll={scrollDirection}
     >
       {navContent}

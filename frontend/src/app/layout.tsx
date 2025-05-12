@@ -1,6 +1,7 @@
 import { Footer } from "@/components/Footer";
 import { QueryClientProvider } from "@/hooks/useQuery";
 import { ToastProvider } from "@/hooks/useToast";
+import { ModeProvider } from "./ModeProvider";
 import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { Heebo } from "next/font/google";
@@ -18,14 +19,16 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={heebo.variable}>
-      <body className="flex min-h-screen flex-col">
-        <QueryClientProvider>
-          <ToastProvider>
-            <main className="relative flex flex-1 flex-col">{children}</main>
-            <Footer />
-          </ToastProvider>
-        </QueryClientProvider>
+    <html lang="en" className={heebo.variable} suppressHydrationWarning>
+      <body className="flex min-h-screen flex-col bg-barely-pink dark:bg-dm-dark-gray">
+        <ModeProvider>
+          <QueryClientProvider>
+            <ToastProvider>
+              <main className="relative flex flex-1 flex-col">{children}</main>
+              <Footer />
+            </ToastProvider>
+          </QueryClientProvider>
+        </ModeProvider>
       </body>
     </html>
   );

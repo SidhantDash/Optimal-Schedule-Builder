@@ -15,30 +15,32 @@ export default function Home() {
       <Navbar />
       <div
         className="relative -mt-[3.625rem] flex h-[calc(100vh-100px)] flex-1 flex-col items-center justify-center gap-16 overflow-hidden bg-cover bg-fixed bg-bottom bg-no-repeat px-4 pt-24 text-center"
-        style={{
-          backgroundImage: `url(${background.src})`,
-        }}
+        // style={{
+        //   backgroundImage: `url(${background.src})`,
+        // }}
       >
         <div className="flex flex-col items-center px-6 py-8 min-[480px]:px-12 sm:px-16 md:max-w-[80%]">
-          <div className="flex w-full flex-col items-center rounded-3xl bg-gradient-to-b from-white/50 to-transparent p-8 backdrop-blur-sm">
-            <div className="flex translate-y-2 justify-center text-nowrap text-5xl md:translate-y-5 md:text-6xl lg:text-7xl">
-              <h2 className="font-extrabold text-slate-800">Bulldog Planner</h2>
+          <div className="flex w-full flex-col items-center gap-8 rounded-3xl">
+            <div className="flex translate-y-2 justify-center text-nowrap text-5xl md:translate-y-5 md:text-6xl lg:text-7xl 2xl:text-8xl">
+              <h2 className="font-extrabold text-slate-800 dark:text-white">
+                Bulldog Planner
+              </h2>
             </div>
             {/* Hero Section */}
-            <div className="flex w-full flex-col items-center pl-10 pr-10">
-              <div className="flex w-full items-center justify-center gap-8">
+            <div className="flex w-full flex-col items-center gap-8 pl-10 pr-10 sm:gap-0 sm:pl-0 sm:pr-0">
+              <div className="flex w-full items-center justify-center sm:gap-16">
                 <div className="flex translate-x-5 flex-col items-start">
                   <div className="flex items-center">
-                    <div className="mr-4 h-20 border-l-4 border-bulldog-red"></div>
-                    <div className="flex h-20 flex-col justify-center text-nowrap">
-                      <span className="text-nowrap text-left text-2xl font-bold leading-tight text-bulldog-red sm:text-3xl xl:text-4xl">
+                    <div className="mr-4 h-20 border-l-4 border-bulldog-red dark:border-white"></div>
+                    <div className="flex h-20 flex-col justify-center">
+                      <span className="text-left text-2xl font-bold leading-tight text-bulldog-red dark:text-white sm:text-3xl xl:text-4xl 2xl:text-5xl">
                         An Optimized
                         <br />
                         Schedule Builder
                       </span>
                     </div>
                   </div>
-                  <span className="mt-5 text-left font-medium text-bulldog-red sm:text-lg xl:text-2xl">
+                  <span className="mt-5 text-left font-medium text-bulldog-red dark:text-white sm:text-lg xl:text-2xl">
                     For Students, By Students
                   </span>
                 </div>
@@ -51,7 +53,7 @@ export default function Home() {
                 />
               </div>
               {/* Ready and Start Now Button */}
-              <div className="flex w-full min-w-[350px] max-w-lg -translate-y-0 items-center justify-center text-xl font-bold md:-translate-y-5 xl:-translate-y-3 xl:text-2xl">
+              <div className="flex w-full min-w-[350px] max-w-lg -translate-y-0 items-center justify-center text-xl font-bold md:-translate-y-5 xl:-translate-y-3 xl:text-2xl 2xl:text-3xl">
                 <p className="-mr-8 w-1/2 cursor-default rounded-l-full bg-[#F8E6EA] bg-dusty-pink px-6 py-4 text-left text-neutral-600/40 sm:py-5">
                   Ready?
                 </p>

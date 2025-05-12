@@ -18,6 +18,8 @@ export default {
         "glory-glory-red": "hsl(var(--glory-glory-red))",
         "mud-gray": "hsl(var(--mud-gray))",
         "pebble-gray": "hsl(var(--pebble-gray))",
+        "dm-light-gray": "#6b6b6b",
+        "dm-dark-gray": "#282828",
         limestone: "hsl(var(--limestone))",
         "baby-blue": "hsl(var(--baby-blue))",
         "lake-herrick": "hsl(var(--lake-herrick))",
@@ -58,4 +60,5 @@ export default {
     },
   },
   plugins: [formsPlugin({ strategy: "class" })],
+  darkMode: "class",
 } satisfies Config;
