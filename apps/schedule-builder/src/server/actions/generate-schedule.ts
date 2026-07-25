@@ -106,11 +106,26 @@ export async function getRecommendedSchedules(
       campusAbbr: schema.campuses.abbr,
     })
     .from(schema.courses)
-    .innerJoin(schema.offerings, eq(schema.offerings.courseId, schema.courses.id))
-    .innerJoin(schema.campuses, eq(schema.offerings.campusId, schema.campuses.id))
-    .leftJoin(schema.instructors, eq(schema.offerings.instructorId, schema.instructors.id))
-    .leftJoin(schema.meetings, eq(schema.meetings.offeringCrn, schema.offerings.crn))
-    .leftJoin(schema.buildings, eq(schema.meetings.buildingId, schema.buildings.id))
+    .innerJoin(
+      schema.offerings,
+      eq(schema.offerings.courseId, schema.courses.id),
+    )
+    .innerJoin(
+      schema.campuses,
+      eq(schema.offerings.campusId, schema.campuses.id),
+    )
+    .leftJoin(
+      schema.instructors,
+      eq(schema.offerings.instructorId, schema.instructors.id),
+    )
+    .leftJoin(
+      schema.meetings,
+      eq(schema.meetings.offeringCrn, schema.offerings.crn),
+    )
+    .leftJoin(
+      schema.buildings,
+      eq(schema.meetings.buildingId, schema.buildings.id),
+    )
     .where(
       and(
         inArray(schema.courses.abbr, params.inputCourseNumbers),
@@ -123,7 +138,8 @@ export async function getRecommendedSchedules(
     if (!params.showFilledClasses && row.seatsAvailable <= 0) continue;
     if (params.excludedSectionCrns.includes(row.offeringCrn)) continue;
 
-    if (!courseMap.has(row.courseAbbr)) courseMap.set(row.courseAbbr, new Map());
+    if (!courseMap.has(row.courseAbbr))
+      courseMap.set(row.courseAbbr, new Map());
     const offeringsMap = courseMap.get(row.courseAbbr)!;
 
     if (!offeringsMap.has(row.offeringCrn)) {

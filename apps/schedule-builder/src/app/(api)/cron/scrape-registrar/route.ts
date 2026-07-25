@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { verifyCronSecret } from "~/lib/cron/auth";
 import {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { instructors } from "~/server/db/schema";
@@ -45,7 +45,9 @@ async function fetchRmpRating(lastName: string): Promise<{
     });
     if (!res.ok) return null;
 
-    const json = (await res.json()) as { data: { searchTeachers: { edges: RmpEdge[] } } };
+    const json = (await res.json()) as {
+      data: { searchTeachers: { edges: RmpEdge[] } };
+    };
     const edges = json.data?.searchTeachers?.edges ?? [];
 
     const match = edges.find(
@@ -69,7 +71,11 @@ export async function GET(req: NextRequest) {
   if (denied) return denied;
 
   const allInstructors = await db
-    .select({ id: instructors.id, firstName: instructors.firstName, lastName: instructors.lastName })
+    .select({
+      id: instructors.id,
+      firstName: instructors.firstName,
+      lastName: instructors.lastName,
+    })
     .from(instructors);
 
   let updated = 0;

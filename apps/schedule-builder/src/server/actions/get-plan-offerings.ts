@@ -105,9 +105,10 @@ export async function getPlanOfferings(crns: number[]): Promise<WeekSchedule> {
         friday: row.friday,
         startTime: row.startTime,
         endTime: row.endTime,
-        buildings: row.buildingDescription !== null
-          ? { description: row.buildingDescription }
-          : null,
+        buildings:
+          row.buildingDescription !== null
+            ? { description: row.buildingDescription }
+            : null,
       });
     }
   }
