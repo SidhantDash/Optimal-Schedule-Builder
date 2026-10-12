@@ -15,8 +15,10 @@ on:
   push:
     branches: [main]
 
+# A push to main gets a group of its own: a deploy waiting for a production
+# approval must not hold back the next commit's checks.
 concurrency:
-  group: ci-${{ github.event_name == 'merge_group' && github.run_id || github.ref }}
+  group: ci-${{ (github.event_name == 'merge_group' || github.event_name == 'push') && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -117,3 +119,15 @@ jobs:
         run: |
           npm test
           { echo '### Catalog contract'; echo; echo "Passed against \`$CATALOG_URL\` with \`@devdogsuga/sdk@$SDK_VERSION\`."; } >> "$GITHUB_STEP_SUMMARY"
+
+  # Every commit that lands on main is staged; production is a latch the Gate
+  # opens (deploy.yaml).
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [validate, database]
+    uses: ./.github/workflows/deploy.yaml
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read

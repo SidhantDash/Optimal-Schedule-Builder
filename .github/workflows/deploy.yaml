@@ -1,0 +1,221 @@
+name: Deploy
+
+# DogDays' own deploy, built from the two shared blocks in DevDogsUGA
+# (deploy-database.yaml, pinned by commit SHA, Q15). Called by ci.yaml on every
+# push to main once `validate` and `database` are green, and runnable by hand.
+#
+#   staging      the database goes through the shared block on every push:
+#                hand-written migrations (none are committed), then the
+#                declarative diff of supabase/schemas, each hash-checked. A
+#                destructive plan needs `staging-destructive` approved by a
+#                devops member. Then a check that the deployed API serves the
+#                schema and refuses the signed-out visitor.
+#
+#   production   OFF until the repository variable DOGDAYS_DEPLOYS_PRODUCTION is
+#                `true`; setting it is part of the Gate, not before. Then, in order:
+#
+#     production-catalog   waits until the PRODUCTION catalog serves the current
+#                          and the next term (wait-for-catalog.mjs). No approval,
+#                          no secrets: it reads a public API. On the first deploy
+#                          this is what waits for the platform to go live.
+#     production-database  the shared block: a read-only plan (`preflight`), an
+#                          approval of `production` (devops, the author and the
+#                          person who queued it excluded), then the schema, the
+#                          config push and the DevDogs sign-in provider. A plan
+#                          that drops or rewrites data needs a second approval,
+#                          of `production-destructive`.
+#     production-copy      the legacyUserId copy of the old DogDays data
+#                          (legacy-copy.sh), when DOGDAYS_LEGACY_COPY is `true`.
+#                          It runs once; the ledger in the database keeps a
+#                          second run from copying anything twice.
+#
+#   NOT HERE YET: the Worker. `deploy-worker.yaml` needs the app to build
+#   standalone (it still depends on the DevDogsUGA workspace). Its two jobs,
+#   staging-worker and production-worker, attach after `staging-database` and
+#   `production-copy`; the old Worker keeps serving dogdays.dev until they do.
+#
+# Every approved production job refuses an approver who wrote or queued the
+# change, and a candidate that is no longer the head of main.
+on:
+  workflow_call:
+    inputs:
+      config:
+        description: Push supabase/config.toml and register the DevDogs sign-in provider.
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      config:
+        description: Push supabase/config.toml and register the DevDogs sign-in provider (the first deploy of an environment, or after the OAuth client changed).
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+env:
+  # One commit of DevDogsUGA for the shared blocks AND their scripts. Bump
+  # both lines below (and database.yaml, destructive-gate.yaml) together.
+  SHARED_REF: ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+
+jobs:
+  # Does this deploy push the Supabase configuration? On a push, only when
+  # supabase/config.toml changed (every push asking for an approval just to find
+  # nothing changed would teach reviewers to click through).
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      config: ${{ steps.config.outputs.config }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Is the Supabase configuration part of this deploy?
+        id: config
+        env:
+          REQUESTED: ${{ inputs.config }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          config=false
+          if [ "$REQUESTED" = true ]; then
+            config=true
+          elif [ -n "$BEFORE" ] && [[ ! "$BEFORE" =~ ^0+$ ]] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            if ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- supabase/config.toml; then config=true; fi
+          fi
+          echo "config=$config" >> "$GITHUB_OUTPUT"
+          echo "Supabase configuration in this deploy: $config" >> "$GITHUB_STEP_SUMMARY"
+
+  staging-database:
+    needs: resolve
+    uses: DevDogsUGA/DevDogsUGA/.github/workflows/deploy-database.yaml@ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    with:
+      environment: staging
+      destructive_environment: staging-destructive
+      apply_config: ${{ needs.resolve.outputs.config == 'true' }}
+      register_provider: ${{ needs.resolve.outputs.config == 'true' }}
+      supabase_version: 2.117.0
+      shared_ref: ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+
+  # What was deployed is what the schema says, and the API is safe to put in
+  # front of students: it serves the dogdays schema, a signed-out request gets
+  # nothing, and the claim function is not callable without a session.
+  staging-verify:
+    needs: staging-database
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: The API serves the schema and refuses a signed-out visitor
+        env:
+          API_URL: ${{ vars.API_URL }}
+          PUBLISHABLE_KEY: ${{ vars.PUBLISHABLE_KEY }}
+        run: bash .github/scripts/verify-deploy.sh
+
+  production-catalog:
+    needs: [resolve, staging-verify]
+    if: >-
+      !cancelled()
+      && vars.DOGDAYS_DEPLOYS_PRODUCTION == 'true'
+      && needs.staging-verify.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Wait for the production catalog to serve the current and the next term
+        env:
+          CATALOG_URL: ${{ vars.CATALOG_URL || 'https://api.devdogsuga.org/catalog/v1' }}
+          WAIT_MINUTES: 120
+        run: node .github/scripts/wait-for-catalog.mjs
+
+  production-database:
+    needs: [resolve, production-catalog]
+    if: >-
+      !cancelled()
+      && vars.DOGDAYS_DEPLOYS_PRODUCTION == 'true'
+      && needs.production-catalog.result == 'success'
+    uses: DevDogsUGA/DevDogsUGA/.github/workflows/deploy-database.yaml@ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    with:
+      environment: production
+      plan_environment: preflight
+      require_read_only_planner: true
+      destructive_environment: production-destructive
+      apply_config: ${{ needs.resolve.outputs.config == 'true' }}
+      register_provider: ${{ needs.resolve.outputs.config == 'true' }}
+      self_approval_gate: true
+      require_latest: true
+      supabase_version: 2.117.0
+      shared_ref: ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+
+  # The one-time copy of the old DogDays data. PLATFORM_DB_URL is a login on the
+  # PLATFORM database that can read the four user tables and nothing else
+  # (platform-copy-role.sql); it lives in the `production` environment, so only
+  # an approved job on main can read it. Dry run first: the counts are in the
+  # summary before anything is written.
+  production-copy:
+    needs: production-database
+    if: >-
+      !cancelled()
+      && vars.DOGDAYS_DEPLOYS_PRODUCTION == 'true'
+      && vars.DOGDAYS_LEGACY_COPY == 'true'
+      && needs.production-database.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: DevDogsUGA/DevDogsUGA
+          ref: ${{ env.SHARED_REF }}
+          path: .shared
+          sparse-checkout: .github/scripts
+      - name: Refuse an approver who wrote or queued this change
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node .shared/.github/scripts/approval-gate.mjs
+          --repo "$GITHUB_REPOSITORY" --run-id "$GITHUB_RUN_ID" --sha "$GITHUB_SHA"
+          --environment production
+      - name: Refuse an approved candidate that is no longer the head
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+        run: |
+          latest=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" "refs/heads/$DEFAULT_BRANCH" | cut -f1)
+          if [ "$latest" != "$GITHUB_SHA" ]; then
+            echo "::error::Candidate $GITHUB_SHA was superseded by $latest. Nothing was changed; the newer commit has its own run."
+            exit 1
+          fi
+      - name: Copy the old DogDays data (dry run, then for real)
+        env:
+          SRC_URL: ${{ secrets.PLATFORM_DB_URL }}
+          DST_URL: ${{ secrets.DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SRC_URL" ]; then
+            echo "::error::The production environment has no PLATFORM_DB_URL secret (see .github/scripts/platform-copy-role.sql)."
+            exit 1
+          fi
+          bash .github/scripts/legacy-copy.sh --dry-run
+          bash .github/scripts/legacy-copy.sh
