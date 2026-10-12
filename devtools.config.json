@@ -21,7 +21,8 @@
   },
   "production": {
     "projects": [
-      "dogdays"
+      "dogdays",
+      "eimswgynsdilfvqriuhv"
     ]
   },
   "runHint": "pnpm dev",
