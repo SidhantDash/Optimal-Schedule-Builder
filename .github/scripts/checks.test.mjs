@@ -33,6 +33,16 @@ test("a public .env.example passes", () => {
   assert.equal(run("check-env-example.mjs", [file], dir).status, 0);
 });
 
+test("the browser Maps key passes under its NEXT_PUBLIC_ name", () => {
+  const { dir, file } = envFile("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyExampleExampleExampleExample00000\n");
+  assert.equal(run("check-env-example.mjs", [file], dir).status, 0);
+});
+
+test("a server-side Maps API key still fails", () => {
+  const { dir, file } = envFile("GOOGLE_MAPS_API_KEY=AIzaSyExampleExampleExampleExample00000\n");
+  assert.equal(run("check-env-example.mjs", [file], dir).status, 1);
+});
+
 test("a missing .env.example passes", () => {
   const dir = mkdtempSync(join(tmpdir(), "dogdays-env-"));
   assert.equal(run("check-env-example.mjs", [join(dir, ".env.example")], dir).status, 0);

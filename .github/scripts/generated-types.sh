@@ -27,6 +27,16 @@ tag=${GENERATED_TYPES_TAG:-generated-types}
 keep=${GENERATED_TYPES_KEEP:-200}
 summary=${GITHUB_STEP_SUMMARY:-/dev/stderr}
 
+# Until the `next` dist-tag of devtools is published there is nothing to run
+# the hash with. That is a missing prerelease, not a broken schema, so say so
+# (a warning annotation and the summary) instead of failing main. A custom
+# DEVTOOLS (the tests, a local build) skips this check.
+if [ -z "${DEVTOOLS:-}" ] && ! npm view @devdogsuga/devtools@next version >/dev/null 2>&1; then
+  echo "::warning::@devdogsuga/devtools@next is not published yet, so no types were uploaded for this schema."
+  echo "@devdogsuga/devtools@next is not published yet: uploaded nothing. Re-run this workflow (workflow_dispatch) once the prerelease exists." >>"$summary"
+  exit 0
+fi
+
 # shellcheck disable=SC2086
 hash=$($devtools db hash)
 product=$(node -p "require('./devtools.config.json').product")

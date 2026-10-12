@@ -18,8 +18,10 @@ and pick an issue. `good first issue` ones take under an hour.
 
 Pull requests need one approval from the code owners in
 [`.github/CODEOWNERS`](.github/CODEOWNERS): the DogDays leads for the app, and
-DevOps for workflows and anything under `supabase/`. Merges are squash merges
-through the merge queue.
+DevOps for workflows and the tooling config. Anything under `supabase/` is owned
+by DevOps and the leads together, so either one can approve it; a change the
+destructive gate flags also needs a DevOps member to add `allow-destructive`.
+Merges are squash merges through the merge queue.
 
 ## Checks
 

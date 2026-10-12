@@ -18,8 +18,11 @@ if (!existsSync(file)) {
   process.exit(0);
 }
 
-// Keys that are public by name: Supabase's publishable key is meant to ship.
-const PUBLIC_KEY = /(^|_)PUBLISHABLE(_|$)|(^|_)ANON(_|$)/;
+// Keys that are public by name: Supabase's publishable key is meant to ship,
+// and so is the browser Maps key (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY), which is
+// restricted by HTTP referrer and API in Google Cloud, not by secrecy. Only a
+// NEXT_PUBLIC_ name qualifies, so a server-side MAPS_API_KEY is still rejected.
+const PUBLIC_KEY = /(^|_)PUBLISHABLE(_|$)|(^|_)ANON(_|$)|^NEXT_PUBLIC_[A-Z_]*MAPS[A-Z_]*_API_KEY$/;
 const SECRET_KEY = /SECRET|PRIVATE|SERVICE_?ROLE|PASSWORD|PASSWD|TOKEN|CREDENTIAL|DB_URL|DATABASE_URL|API_?KEY|SIGNING/i;
 const SECRET_VALUE = [
   [/^sb_secret_/, "a Supabase secret key"],
