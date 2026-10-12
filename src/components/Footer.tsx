@@ -24,6 +24,12 @@ const SOCIALS = [
   },
 ] as const;
 
+/** The legal pages live on the club's site, one set for every DevDogs product. */
+const LEGAL = [
+  { title: "Terms", href: "https://devdogsuga.org/legal/terms" },
+  { title: "Privacy", href: "https://devdogsuga.org/legal/privacy" },
+] as const;
+
 export function Footer() {
   return (
     <footer className="bg-navy px-4 py-6 text-sm text-zinc-400">
@@ -54,6 +60,17 @@ export function Footer() {
           >
             Contact
           </a>
+          {LEGAL.map(({ title, href }) => (
+            <a
+              key={title}
+              className="hover:text-navy-foreground transition-colors"
+              href={href}
+              target="_blank"
+              rel="noopener"
+            >
+              {title}
+            </a>
+          ))}
           <span className="flex items-center gap-1">
             {SOCIALS.map(({ title, href, Icon }) => (
               <a

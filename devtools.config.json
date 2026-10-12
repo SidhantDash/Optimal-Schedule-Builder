@@ -3,11 +3,35 @@
   "name": "DogDays",
   "supabase": {
     "version": "2.117.0",
-    "schemas": ["dogdays"]
+    "schemas": [
+      "dogdays"
+    ]
   },
-  "types": { "kind": "typescript", "out": "src/supabase/database.types.ts" },
-  "generatedTypes": { "repo": "DevDogsUGA/DogDays" },
-  "oauth": { "redirectUris": ["http://localhost:3000/auth/callback"] },
-  "production": { "projects": ["dogdays"] },
-  "runHint": "pnpm dev"
+  "types": {
+    "kind": "typescript",
+    "out": "src/supabase/database.types.ts"
+  },
+  "generatedTypes": {
+    "repo": "DevDogsUGA/DogDays"
+  },
+  "oauth": {
+    "redirectUris": [
+      "http://localhost:3000/auth/callback"
+    ]
+  },
+  "production": {
+    "projects": [
+      "dogdays"
+    ]
+  },
+  "runHint": "pnpm dev",
+  "env": {
+    "example": ".env.example",
+    "file": ".env",
+    "tooling": ".env.tooling",
+    "keys": {
+      "url": "NEXT_PUBLIC_SUPABASE_URL",
+      "publishableKey": "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+    }
+  }
 }
