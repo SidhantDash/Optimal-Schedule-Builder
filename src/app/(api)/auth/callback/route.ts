@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { env } from "~/env";
 import { isUgaEmail } from "~/lib/auth";
 import { createClient } from "~/supabase/server";
 
@@ -29,7 +30,10 @@ export async function GET(request: NextRequest) {
       data: { user },
       error,
     } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error && isUgaEmail(user?.email)) {
+    // Production members are UGA accounts. Staging and local development sign
+    // in with `*.devdogsuga.test` and contributors' own accounts, which are not.
+    const accepted = env.DEPLOY_ENV !== "production" || isUgaEmail(user?.email);
+    if (!error && accepted) {
       return NextResponse.redirect(new URL(next, origin));
     }
 

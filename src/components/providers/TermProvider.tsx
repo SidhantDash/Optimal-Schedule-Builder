@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, type PropsWithChildren, useContext } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "~/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTerms, type CatalogTerm } from "~/hooks/queries/useTerms";
 import { useCurrentAcademicPeriod } from "~/hooks/data/usePreferences";
 
 type AvailableTerm = { academicPeriod: number; description: string };
@@ -18,25 +18,13 @@ const TermContext = createContext<TermContextValue | null>(null);
 export function TermProvider({
   children,
   initialTerms,
-}: PropsWithChildren<{ initialTerms: AvailableTerm[] }>) {
+}: PropsWithChildren<{ initialTerms: CatalogTerm[] }>) {
   const queryClient = useQueryClient();
 
-  const { data: availableTerms = [] } = useQuery({
-    queryKey: ["available-terms"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("availableTerms")
-        .select("academicPeriod, description")
-        .order("academicPeriod", { ascending: false });
-      if (error) throw error;
-      return (data ?? []).map((r) => ({
-        academicPeriod: r.academicPeriod!,
-        description: r.description!,
-      }));
-    },
-    initialData: initialTerms,
-    staleTime: Infinity,
-  });
+  const { data: terms = [] } = useTerms(initialTerms);
+  const availableTerms: AvailableTerm[] = terms.map(
+    ({ academicPeriod, description }) => ({ academicPeriod, description }),
+  );
 
   const { academicPeriod: savedPeriod, setCurrentAcademicPeriod } =
     useCurrentAcademicPeriod();

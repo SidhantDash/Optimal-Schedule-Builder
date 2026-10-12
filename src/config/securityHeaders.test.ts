@@ -1,6 +1,6 @@
 import { buildSecurityHeaders } from "@devdogsuga/sdk/headers";
 import { describe, expect, it } from "vitest";
-import { scheduleBuilderCsp } from "~/config/csp";
+import { dogDaysCsp } from "~/config/csp";
 import golden from "./securityHeaders.golden.json";
 
 /**
@@ -31,6 +31,16 @@ function normalize(entries: Entry[]): Record<string, string | string[][]> {
   );
 }
 
+const CATALOG = "https://catalog.example.test";
+
+/** The golden file predates the catalog origin; take it out to compare the rest. */
+function withoutCatalog(entries: Entry[]): Entry[] {
+  return entries.map(({ key, value }) => ({
+    key,
+    value: value.replace(` ${CATALOG}`, ""),
+  }));
+}
+
 const urls = {
   development: "http://localhost:54321",
   staging: "https://stg.example.supabase.co",
@@ -38,14 +48,15 @@ const urls = {
 } as const;
 
 describe.each(["development", "staging", "production"] as const)(
-  "schedule-builder security headers (%s)",
+  "DogDays security headers (%s)",
   (environment) => {
     const build = (sentryDsn?: string, nonce?: string): Entry[] =>
       buildSecurityHeaders({
         environment,
-        csp: scheduleBuilderCsp({
+        csp: dogDaysCsp({
           environment,
           supabaseUrl: urls[environment],
+          catalogUrl: `${CATALOG}/catalog/v1`,
           sentryDsn,
           nonce,
         }),
@@ -53,12 +64,25 @@ describe.each(["development", "staging", "production"] as const)(
 
     it("matches the previous output with a nonce and Sentry", () => {
       expect(
-        normalize(build("https://abc@o123.ingest.us.sentry.io/456", "NONCE")),
+        normalize(
+          withoutCatalog(
+            build("https://abc@o123.ingest.us.sentry.io/456", "NONCE"),
+          ),
+        ),
       ).toEqual(normalize(golden[environment].sentry));
     });
 
+    it("lets the browser reach the catalog", () => {
+      const csp = build().find(({ key }) =>
+        key.startsWith("Content-Security-Policy"),
+      )!.value;
+      expect(csp).toMatch(
+        new RegExp(`connect-src [^;]*${CATALOG.replace(/\./g, "\\.")}`),
+      );
+    });
+
     it("matches the previous output without a nonce or Sentry DSN", () => {
-      expect(normalize(build())).toEqual(
+      expect(normalize(withoutCatalog(build()))).toEqual(
         normalize(golden[environment].noSentry),
       );
     });

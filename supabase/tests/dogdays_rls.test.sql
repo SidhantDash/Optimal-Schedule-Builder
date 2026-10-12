@@ -7,7 +7,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(31);
+select plan(34);
 
 -- How many rows a statement touched, run as whoever is calling. (pgTAP cannot
 -- wrap a data-modifying statement, and a policy that hides a row makes an
@@ -78,6 +78,10 @@ select lives_ok($$insert into dogdays."userPlanDraftCourses" ("userId", "academi
 select is((select count(*) from dogdays."userSavedPlans"), 1::bigint, 'alice sees her own plan');
 select lives_ok($$update dogdays."userSavedPlans" set title = 'renamed' where title = 'mine'$$, 'alice can update her plan');
 select is((select title from dogdays."userSavedPlans"), 'renamed', 'the update took effect');
+select lives_ok($$insert into dogdays."userSavedPlans" (id, "userId", "academicPeriod", title, crns)
+  values ('00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000a1', 202608, 'merged', '{3}')$$, 'alice can keep a local plan id when she signs in');
+select lives_ok($$update dogdays."userSavedPlans" set "courseIds" = '{5,6}' where title = 'renamed'$$, 'alice can record the courses a plan came from');
+select is((select "courseIds" from dogdays."userSavedPlans" where title = 'renamed'), '{5,6}'::integer[], 'the course ids were stored');
 
 -- Never legacyUserId: only the copy job writes it.
 select throws_ok($$insert into dogdays."userSavedPlans" ("userId", "legacyUserId", "academicPeriod", title, crns)
@@ -134,7 +138,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-0000000000a1
 select is(dogdays.claim_legacy_data(),
   '{"claimed": true, "savedPlans": 2, "preferences": 0, "drafts": 1, "draftCourses": 2}'::jsonb,
   'alice keeps what she already made and claims the rest');
-select is((select count(*) from dogdays."userSavedPlans"), 3::bigint, 'alice has her own plan plus the two copied ones');
+select is((select count(*) from dogdays."userSavedPlans"), 4::bigint, 'alice has her two own plans plus the two copied ones');
 
 -- Callers without a session.
 select set_config('request.jwt.claims', '', true);

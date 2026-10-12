@@ -1,0 +1,25 @@
+# Which dependencies' install scripts may run. `false` is a decision, not an
+# omission.
+allowBuilds:
+  "@sentry/cli": true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  workerd: true
+
+# Dependencies published by DevDogs itself, plus the toolchain pins the
+# platform repository verified together (see patches/patches.json), skip the
+# release-age gate: holding our own releases back only delays a fix.
+minimumReleaseAgeExclude:
+  - "@devdogsuga/*"
+
+# `pnpm devtools` is a `pnpm dlx` run. Zero resolves the `next` dist-tag on
+# every run, so a publish reaches everyone at once.
+dlxCacheMaxAge: 0
+
+# Why each patch exists and when to drop it: patches/patches.json.
+patchedDependencies:
+  "@vinext/cloudflare@1.0.1": patches/@vinext__cloudflare@1.0.1.patch
+  react-dom@19.3.0: patches/react-dom@19.3.0.patch
+  react-server-dom-webpack@19.3.0: patches/react-server-dom-webpack@19.3.0.patch
+  react@19.3.0: patches/react@19.3.0.patch

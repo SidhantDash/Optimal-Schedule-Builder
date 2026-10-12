@@ -1,9 +1,7 @@
 "use server";
 
-import { eq } from "drizzle-orm";
-import { db } from "~/server/db";
-import * as schema from "~/server/db/schema";
-import { loadSections } from "~/lib/domain/loadSections";
+import { catalog } from "~/catalog/browser";
+import { loadSections } from "~/lib/domain/catalogSections";
 import type { GenerationConstraints } from "~/lib/generation/constraints";
 import {
   generateSchedules,
@@ -70,14 +68,16 @@ export async function getRecommendedSchedules(
     };
   }
 
+  const allSections = await loadSections(catalog, params.academicPeriod, {
+    courseAbbrs: params.inputCourseNumbers,
+  });
+
   // `campusOptions` is keyed by the human-readable campus name, which the
-  // registrar feed stores as `description`; `abbr` holds the Banner code.
-  const campusRows = await db
-    .select({ id: schema.campuses.id })
-    .from(schema.campuses)
-    .where(eq(schema.campuses.description, params.inputCampus))
-    .limit(1);
-  const campusId = campusRows[0]?.id;
+  // registrar feed stores as `description`; `abbr` holds the Banner code. The
+  // catalog names the campus on every section, so the id comes from there.
+  const campusId = allSections.find(
+    (section) => section.campus.description === params.inputCampus,
+  )?.campus.id;
 
   // Falling through with an unresolved campus would silently ignore the filter
   // and hand back sections from every campus.
@@ -87,11 +87,6 @@ export async function getRecommendedSchedules(
       error: `No sections found for the ${params.inputCampus} campus.`,
     };
   }
-
-  const allSections = await loadSections(db, {
-    academicPeriod: params.academicPeriod,
-    courseAbbrs: params.inputCourseNumbers,
-  });
 
   const usableSections = filterUsableSections(
     allSections,

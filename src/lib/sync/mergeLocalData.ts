@@ -196,12 +196,13 @@ async function mergeSavedPlans(
   // idempotent: a retry, or a second tab, upserts the same rows.
   assertOk(
     await supabase.from("userSavedPlans").upsert(
-      plans.map(({ id, academicPeriod, title, crns, pinned }) => ({
+      plans.map(({ id, academicPeriod, title, crns, courseIds, pinned }) => ({
         id,
         userId,
         academicPeriod,
         title,
         crns,
+        courseIds,
         pinned,
       })),
       { onConflict: "id", ignoreDuplicates: true },

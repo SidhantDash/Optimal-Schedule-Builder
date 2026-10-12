@@ -6,26 +6,27 @@ import {
 } from "@devdogsuga/sdk/headers";
 import { THEME_INIT_SCRIPT_HASH } from "~/config/theme-init-script";
 
-export interface ScheduleBuilderCspInput {
+export interface DogDaysCspInput {
   environment: Environment;
   supabaseUrl: string;
-  /** `NEXT_PUBLIC_SCHEDULE_BUILDER_SENTRY_DSN`; falsy before onboarding. */
+  /** `NEXT_PUBLIC_CATALOG_URL`: the browser reads the catalog directly. */
+  catalogUrl: string;
+  /** `NEXT_PUBLIC_SENTRY_DSN`; falsy before onboarding. */
   sentryDsn?: string | null;
   nonce?: string;
 }
 
 /**
- * Schedule-builder's CSP: the shared baseline plus Supabase and Sentry. A new
+ * DogDays' CSP: the shared baseline plus Supabase, the catalog and Sentry. A new
  * third-party origin for this app is a change here and nowhere else.
  */
-export function scheduleBuilderCsp(
-  input: ScheduleBuilderCspInput,
-): CspDirectives {
+export function dogDaysCsp(input: DogDaysCspInput): CspDirectives {
   const csp = baselineCsp({
     nonce: input.nonce,
     environment: input.environment,
   });
   const supabase = originOf(input.supabaseUrl);
+  const catalog = originOf(input.catalogUrl);
   const sentry = input.sentryDsn ? originOf(input.sentryDsn) : null;
   return {
     ...csp,
@@ -33,6 +34,7 @@ export function scheduleBuilderCsp(
     "connect-src": [
       ...csp["connect-src"]!,
       ...(supabase ? [supabase] : []),
+      ...(catalog ? [catalog] : []),
       ...(sentry ? [sentry] : []),
     ],
     // `global-error.tsx`'s inline theme script can't carry the nonce (see

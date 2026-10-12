@@ -1,32 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DateRange, Meeting, Section } from "~/lib/domain/section";
 
-// `~/server/db`'s `db` export triggers `~/env`'s `createEnv()` at module
-// load (see `loadSections.ts`'s doc comment), which throws outside a real
-// Next.js/Worker environment. The action only ever uses `db` for the
-// campus lookup exercised below, so a minimal chainable stub is enough —
-// no real Postgres connection required.
-function emptyChain() {
-  const rows: unknown[] = [];
-  const promise = Promise.resolve(rows) as Promise<unknown[]> & {
-    limit: (n: number) => Promise<unknown[]>;
-  };
-  promise.limit = () => Promise.resolve(rows);
-  return promise;
-}
-
-vi.mock("~/server/db", () => ({
-  db: {
-    select: () => ({
-      from: () => ({
-        where: () => emptyChain(),
-      }),
-    }),
-  },
-}));
+// `~/catalog/browser` builds the catalog client from `~/env` at load; the
+// action only needs `loadSections`, mocked below.
+vi.mock("~/catalog/browser", () => ({ catalog: {} }));
 
 const mockLoadSections = vi.fn();
-vi.mock("~/lib/domain/loadSections", () => ({
+vi.mock("~/lib/domain/catalogSections", () => ({
   loadSections: (...args: unknown[]) =>
     mockLoadSections(...args) as Promise<Section[]>,
 }));
@@ -203,5 +183,43 @@ describe("getRecommendedSchedules", () => {
     });
     expect(malformed.error).toBeUndefined();
     expect(malformed.data).toHaveLength(2);
+  });
+});
+
+describe("getRecommendedSchedules campus", () => {
+  const base = {
+    academicPeriod: 202605,
+    inputCourseNumbers: ["CSCI1301"],
+    excludedSectionCrns: [],
+    minCreditHours: 0,
+    maxCreditHours: 18,
+    showFilledClasses: true,
+  };
+
+  it("reads the campus id off the sections the catalog returned", async () => {
+    mockLoadSections.mockResolvedValue([
+      section({
+        crn: 1,
+        campus: { id: 7, abbr: "GRF", description: "Griffin" },
+      }),
+      section({ crn: 2 }),
+    ]);
+    const result = await getRecommendedSchedules({
+      ...base,
+      inputCampus: "Griffin",
+    });
+    expect(result).toEqual({ data: [[1]] });
+  });
+
+  it("says so when no section is on the chosen campus", async () => {
+    mockLoadSections.mockResolvedValue([section({ crn: 2 })]);
+    const result = await getRecommendedSchedules({
+      ...base,
+      inputCampus: "Tifton",
+    });
+    expect(result).toEqual({
+      data: [],
+      error: "No sections found for the Tifton campus.",
+    });
   });
 });

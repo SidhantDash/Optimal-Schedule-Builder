@@ -13,9 +13,7 @@ export function SectionExclusionList({
     <div className="flex flex-col gap-2">
       {offerings.map((o) => {
         const included = !excludedCrns.has(o.crn);
-        const instructor = o.lastName
-          ? `${o.firstName ?? ""} ${o.lastName}`.trim()
-          : "Staff";
+        const instructor = o.professor ?? "Staff";
         return (
           <label
             key={o.crn}

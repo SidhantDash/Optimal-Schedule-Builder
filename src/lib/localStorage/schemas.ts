@@ -45,6 +45,7 @@ export const LocalSavedPlan = z.object({
   academicPeriod: z.number(),
   title: z.string(),
   crns: z.array(z.number()),
+  courseIds: z.array(z.number()).default([]),
   pinned: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),

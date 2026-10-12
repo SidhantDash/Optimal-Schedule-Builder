@@ -2,38 +2,12 @@
 
 import { useState } from "react";
 import { PlusCircleIcon } from "@phosphor-icons/react/ssr";
-import type { SectionRow } from "~/types/course";
+import type { CourseOption } from "~/types/course";
 import { CourseSectionsDialog } from "./CourseSectionsDialog";
 import { formatCourseCode } from "~/lib/courseCode";
 
-type CourseGroup = {
-  courseId: number;
-  abbr: string;
-  courseNumber: string;
-  title: string;
-  maxCreditHours: number;
-  offerings: SectionRow[];
-};
-
-export function CourseSearchResult({
-  course,
-  includeOnlyCrn,
-}: {
-  course: CourseGroup;
-  /** Forwarded to the sections dialog for the "add by CRN" flow. */
-  includeOnlyCrn?: number;
-}) {
+export function CourseSearchResult({ course }: { course: CourseOption }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  const instructorNames = [
-    ...new Set(
-      course.offerings
-        .map((o) =>
-          o.lastName ? `${o.firstName ?? ""} ${o.lastName}`.trim() : null,
-        )
-        .filter(Boolean),
-    ),
-  ].join(", ");
 
   return (
     <>
@@ -43,9 +17,6 @@ export function CourseSearchResult({
             {formatCourseCode(course.abbr, course.courseNumber)}
           </span>
           <span className="text-foreground/80 text-sm">{course.title}</span>
-          {instructorNames && (
-            <span className="text-muted text-xs">{instructorNames}</span>
-          )}
         </div>
         <div className="flex items-center gap-3">
           <span className="text-muted text-xs">{course.maxCreditHours} cr</span>
@@ -53,6 +24,7 @@ export function CourseSearchResult({
             onClick={() => setDialogOpen(true)}
             className="text-accent hover:text-accent"
             title="Add course"
+            aria-label={`Add ${formatCourseCode(course.abbr, course.courseNumber)}`}
           >
             <PlusCircleIcon weight="bold" size={24} />
           </button>
@@ -62,7 +34,6 @@ export function CourseSearchResult({
       {dialogOpen && (
         <CourseSectionsDialog
           course={course}
-          includeOnlyCrn={includeOnlyCrn}
           onClose={() => setDialogOpen(false)}
         />
       )}

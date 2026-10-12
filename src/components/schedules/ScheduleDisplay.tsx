@@ -11,6 +11,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react/ssr";
 import { useSavedPlan } from "~/hooks/data/useSavedPlans";
+import { useDraftCourses } from "~/hooks/data/useDraftCourses";
 import { getPlanOfferings } from "~/server/actions/get-plan-offerings";
 
 interface Props {
@@ -25,11 +26,27 @@ export default function ScheduleDisplay({ id }: Props) {
   } = useSavedPlan(id);
   const currentPlanIndex = allPlans.findIndex((p) => p.id === id);
 
+  // Plans from before the courses were recorded fall back to the term's
+  // current draft, which is usually the set they were generated from.
+  const { draftCourses } = useDraftCourses();
+  const planCourseIds = currentPlan?.courseIds?.length
+    ? currentPlan.courseIds
+    : draftCourses.map((course) => course.courseId);
+
   const { data: weekData } = useQuery({
-    queryKey: ["plan-offerings", id, currentPlan?.academicPeriod],
-    enabled: !!currentPlan?.crns?.length,
+    queryKey: [
+      "plan-offerings",
+      id,
+      currentPlan?.academicPeriod,
+      planCourseIds,
+    ],
+    enabled: !!currentPlan?.crns?.length && planCourseIds.length > 0,
     queryFn: () =>
-      getPlanOfferings(currentPlan!.academicPeriod, currentPlan!.crns),
+      getPlanOfferings(
+        currentPlan!.academicPeriod,
+        currentPlan!.crns,
+        planCourseIds,
+      ),
   });
 
   const handleInputKeyUp = useCallback(

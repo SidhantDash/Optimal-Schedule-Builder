@@ -17,6 +17,8 @@ export type SavedPlan = {
   academicPeriod: number;
   title: string;
   crns: number[];
+  /** The catalog course ids the plan was generated from; empty for plans from before this was recorded. */
+  courseIds: number[];
   pinned: boolean;
   createdAt: string;
   updatedAt: string;

@@ -1,6 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCourseInfos } from "~/hooks/queries/useCourseInfos";
 import { supabase } from "~/supabase/client";
 import { useSession } from "~/components/providers/SessionProvider";
 import { useTerm } from "~/components/providers/TermProvider";
@@ -17,19 +19,19 @@ export function useDraftCourses() {
   const { academicPeriod } = useTerm();
   const queryClient = useQueryClient();
 
-  const { data: draftCourses = [], isLoading } = useQuery<DraftCourse[]>({
+  const { data: rows = [], isLoading } = useQuery<DraftCourse[]>({
     queryKey: ["draft-courses", academicPeriod],
     enabled: academicPeriod != null && !sessionLoading,
     queryFn: async () => {
       if (user) {
         const { data, error } = await supabase
           .from("userPlanDraftCourses")
-          .select(
-            "id, courseId, excludedCrns, courses(abbr, courseNumber, title)",
-          )
+          .select("id, courseId, excludedCrns")
           .eq("academicPeriod", academicPeriod!);
         if (error) throw error;
-        return data ?? [];
+        // The database holds catalog course ids only; the names come from the
+        // catalog (see `useCourseInfos`) and are joined in below.
+        return (data ?? []).map((row) => ({ ...row, courses: null }));
       }
       const map = readLocal(LOCAL_KEYS.draftCourses, LocalDraftCoursesMap);
       const flat = map[String(academicPeriod)] ?? [];
@@ -44,6 +46,21 @@ export function useDraftCourses() {
       );
     },
   });
+
+  // A signed-in member's rows carry no names: look them up once per set of
+  // courses. Signed-out rows already carry theirs.
+  const { data: infos } = useCourseInfos(
+    user ? rows.map((row) => row.courseId) : [],
+    academicPeriod,
+  );
+  const draftCourses = useMemo(
+    () =>
+      rows.map((row) => ({
+        ...row,
+        courses: row.courses ?? infos?.get(row.courseId) ?? null,
+      })),
+    [rows, infos],
+  );
 
   const upsertCourse = useMutation({
     mutationFn: async (input: {

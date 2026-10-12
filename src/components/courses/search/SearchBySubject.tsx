@@ -14,10 +14,10 @@ export function SearchBySubject({ searchParams, setParams }: PanelProps) {
   const subjectAbbr = searchParams.get("subject") ?? undefined;
   const courseAbbr = searchParams.get("course") ?? undefined;
 
-  const { data: subjects = [] } = useSubjects();
+  const { data: subjects = [] } = useSubjects(academicPeriod);
   const selectedSubject = subjects.find((s) => s.abbr === subjectAbbr);
   const { data: courses = [] } = useCoursesBySubject(
-    selectedSubject?.id,
+    selectedSubject?.abbr,
     academicPeriod,
   );
   const selectedCourse = courses.find((c) => c.abbr === courseAbbr);
@@ -89,9 +89,7 @@ export function SearchBySubject({ searchParams, setParams }: PanelProps) {
         </label>
       </fieldset>
 
-      {selectedCourse && (
-        <CourseSearchResult course={{ ...selectedCourse, offerings: [] }} />
-      )}
+      {selectedCourse && <CourseSearchResult course={selectedCourse} />}
     </div>
   );
 }

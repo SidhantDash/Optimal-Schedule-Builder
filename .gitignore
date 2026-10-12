@@ -41,3 +41,6 @@ npm-debug.log*
 
 # IDE
 .idea/
+
+# Copied from @devdogsuga/sdk by `pnpm codegen`
+public/brand/

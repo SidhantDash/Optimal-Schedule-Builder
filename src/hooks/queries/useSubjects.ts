@@ -1,23 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "~/supabase/client";
+import { catalog } from "~/catalog/browser";
 
 export interface Subject {
-  id: number;
   abbr: string;
   description: string;
 }
 
-/** Every subject in the catalog, ordered by abbreviation. */
-export function useSubjects() {
+/** Every subject with a course on offer in the term, ordered by abbreviation. */
+export function useSubjects(academicPeriod: number | null | undefined) {
   return useQuery<Subject[]>({
-    queryKey: ["subjects"],
+    queryKey: ["catalog", "subjects", academicPeriod],
+    enabled: academicPeriod != null,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("subjects")
-        .select("id, abbr, description")
-        .order("abbr");
-      if (error) throw error;
-      return data ?? [];
+      const { subjects } = await catalog.listSubjects({
+        term: academicPeriod!,
+      });
+      return subjects.map(({ abbr, description }) => ({ abbr, description }));
     },
   });
 }

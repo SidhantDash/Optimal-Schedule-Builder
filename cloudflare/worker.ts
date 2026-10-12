@@ -1,69 +1,48 @@
 /**
  * Custom Cloudflare Worker entry; wrangler `main` points here. It composes
- * vinext's own App Router request handler with the cron `scheduled` handler
- * from ./scheduled.
- *
- * vinext's Cloudflare integration normally deploys straight from
- * `vinext/server/app-router-entry` as `main` with no custom entry at all --
- * see the migrate-to-vinext skill's config-examples.md. This app keeps a
- * custom entry anyway, for what that integration doesn't cover: composing
- * Sentry's `withSentry` around `fetch`/`scheduled` (see below).
+ * vinext's own App Router request handler with Sentry's `withSentry`.
  *
  * Server-side Sentry capture is wired HERE, via `@sentry/cloudflare`'s
  * `withSentry`, and deliberately NOT via `@sentry/nextjs`'s usual
- * `sentry.server.config.ts` / `instrumentation.ts` pattern -- same reasoning
- * as the platform Worker (Backstage's `apps/platform/cloudflare/worker.ts`): that pattern assumes a
- * Vercel/Node/Edge runtime and throws "Cannot call this AsyncLocalStorage
- * bound function outside of the request in which it was created"
- * (getsentry/sentry-javascript#18842) under OpenNext-on-Workers, and the same
+ * `sentry.server.config.ts` / `instrumentation.ts` pattern: that pattern
+ * assumes a Vercel/Node/Edge runtime and throws "Cannot call this
+ * AsyncLocalStorage bound function outside of the request in which it was
+ * created" (getsentry/sentry-javascript#18842) on Workers, and the same
  * constraint applies to vinext's own request-scoped `AsyncLocalStorage`.
- * `withSentry` instruments the `fetch`/`scheduled` handler from OUTSIDE that
- * request context instead, capturing every unhandled error thrown inside a
- * route, a Server Component render, a Server Action, or the cron dispatcher
- * below. `SCHEDULE_BUILDER_SENTRY_DSN` reaches this Worker like every other secret/env var;
- * this file carries none.
+ * `withSentry` instruments the `fetch` handler from OUTSIDE that request
+ * context instead, capturing every unhandled error thrown inside a route, a
+ * Server Component render or a Server Action. `SENTRY_DSN` reaches this Worker
+ * as a plain variable; this file carries none.
  */
 import * as Sentry from "@sentry/cloudflare";
 import { buildSentryOptions } from "@devdogsuga/sdk/telemetry";
 import handler from "vinext/server/app-router-entry";
-import { scheduled, type CronEnv } from "./scheduled";
-import type { env as scheduleBuilderEnv } from "~/env";
+import type { DeployEnvironment } from "~/env";
 
 /**
- * The bindings this entry reads, borrowed by type from `~/env` -- same
- * pattern as the platform app's `WorkerEnv`. `SCHEDULE_BUILDER_SENTRY_DSN` is a Worker secret;
- * `DEPLOY_ENV` is set by wrangler.jsonc's per-env `vars` block and the
- * build step.
- *
- * `SENTRY_RELEASE` is NOT part of `~/env`'s schema -- see the platform Worker's `WorkerEnv`
- * (apps/platform/cloudflare/worker.ts in Backstage) for why. It reaches this Worker as a
- * `--var` on `wrangler deploy` (see `backstage deploy`), same as platform.
+ * The bindings this entry reads. `DEPLOY_ENV` is set by wrangler.jsonc's
+ * per-env `vars` block. `SENTRY_RELEASE` and `SENTRY_DSN` are set per deploy
+ * (`wrangler versions upload --var`); a Worker without them simply does not
+ * start Sentry.
  *
  * `@sentry/cloudflare`'s `withSentry` infers ONE `Env` type parameter shared
- * by both the options callback below and the `fetch`/`scheduled` handler
- * object, so this type also has to satisfy whatever those two need: `./
- * scheduled`'s own `CronEnv` (`BASE_URL`/`CRON_SECRET`), and vinext's
- * `app-router-entry` handler's `env` parameter (pulled in structurally via
- * `Parameters<...>` rather than duplicated, so it can't drift). Without the
- * latter, TypeScript's "weak type" check rejects passing this `env` through
- * to `handler.fetch` -- `WorkerAssetEnv` is all-optional (just `ASSETS?`)
- * and shares no property names with the rest of this type otherwise.
+ * by both the options callback and the `fetch` handler, so this type also has
+ * to satisfy vinext's handler (pulled in structurally via `Parameters<...>`
+ * rather than duplicated, so it can't drift).
  */
-type WorkerEnv = Pick<
-  typeof scheduleBuilderEnv,
-  "SCHEDULE_BUILDER_SENTRY_DSN" | "DEPLOY_ENV"
-> &
-  CronEnv &
-  NonNullable<Parameters<typeof handler.fetch>[1]> & {
-    readonly SENTRY_RELEASE?: string;
-  };
+type WorkerEnv = NonNullable<Parameters<typeof handler.fetch>[1]> & {
+  readonly DEPLOY_ENV: DeployEnvironment;
+  readonly SENTRY_DSN?: string;
+  readonly SENTRY_RELEASE?: string;
+};
 
 export default Sentry.withSentry(
   (env: WorkerEnv) => {
     const options = buildSentryOptions({
+      // The Sentry project keeps the name DogDays was born with.
       service: "schedule-builder",
       environment: env.DEPLOY_ENV,
-      dsn: env.SCHEDULE_BUILDER_SENTRY_DSN,
+      dsn: env.SENTRY_DSN,
       release: env.SENTRY_RELEASE,
     });
     // `enableLogs` alone only ships `Sentry.logger` calls, and this code logs
@@ -81,6 +60,5 @@ export default Sentry.withSentry(
   },
   {
     fetch: (request, env, ctx) => handler.fetch(request, env, ctx),
-    scheduled: (event, env) => scheduled(event, env),
   },
 );

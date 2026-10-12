@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTerm } from "~/components/providers/TermProvider";
+import { useTerms } from "~/hooks/queries/useTerms";
 import { useSession } from "~/components/providers/SessionProvider";
 import { supabase } from "~/supabase/client";
 import { LOCAL_KEYS } from "~/lib/localStorage/keys";
@@ -70,24 +71,17 @@ export function TermSelector() {
   const { academicPeriod, setAcademicPeriod, availableTerms } = useTerm();
   const { courseCounts, planCounts } = useTermCounts();
 
-  const { data: partsOfTerm = [] } = useQuery({
-    queryKey: ["parts-of-term"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("partsOfTerm")
-        .select("academicPeriod, dropAddEnds");
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: Infinity,
-  });
+  const { data: terms = [] } = useTerms();
 
   const { openTerms, closedTerms } = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const openPeriods = new Set<number>();
-    for (const pot of partsOfTerm) {
-      if (pot.dropAddEnds >= today) openPeriods.add(pot.academicPeriod);
-    }
+    // Registration is open while any part of the term still has a drop/add
+    // day ahead of it.
+    const openPeriods = new Set(
+      terms
+        .filter((term) => term.dropAddEnds.some((end) => end >= today))
+        .map((term) => term.academicPeriod),
+    );
 
     const sorted = [...availableTerms].sort(
       (a, b) => b.academicPeriod - a.academicPeriod,
@@ -97,7 +91,7 @@ export function TermSelector() {
       openTerms: sorted.filter((t) => openPeriods.has(t.academicPeriod)),
       closedTerms: sorted.filter((t) => !openPeriods.has(t.academicPeriod)),
     };
-  }, [availableTerms, partsOfTerm]);
+  }, [availableTerms, terms]);
 
   if (availableTerms.length === 0) return null;
 

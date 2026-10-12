@@ -39,7 +39,9 @@ export function useSavedPlans() {
   });
 
   const insertPlans = useMutation({
-    mutationFn: async (plans: { title: string; crns: number[] }[]) => {
+    mutationFn: async (
+      plans: { title: string; crns: number[]; courseIds: number[] }[],
+    ) => {
       if (user) {
         const { error } = await supabase.from("userSavedPlans").insert(
           plans.map((p) => ({
@@ -47,6 +49,7 @@ export function useSavedPlans() {
             academicPeriod: academicPeriod!,
             title: p.title,
             crns: p.crns,
+            courseIds: p.courseIds,
             pinned: false,
           })),
         );
@@ -59,6 +62,7 @@ export function useSavedPlans() {
           academicPeriod: academicPeriod!,
           title: p.title,
           crns: p.crns,
+          courseIds: p.courseIds,
           pinned: false,
           createdAt: now,
           updatedAt: now,

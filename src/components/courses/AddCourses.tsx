@@ -9,20 +9,18 @@ import {
 } from "next/navigation";
 import { z } from "zod";
 import { SearchBySubject } from "./search/SearchBySubject";
-import { SearchByInstructor } from "./search/SearchByInstructor";
-import { SearchByCRN } from "./search/SearchByCRN";
+import { SearchByQuery } from "./search/SearchByQuery";
 
-const VIEWS = ["subject", "instructor", "crn"] as const;
+const VIEWS = ["search", "subject"] as const;
 export type AddCourseView = (typeof VIEWS)[number];
-const viewSchema = z.enum(VIEWS).catch("subject");
+const viewSchema = z.enum(VIEWS).catch("search");
 
 const TABS: { view: AddCourseView; label: string }[] = [
+  { view: "search", label: "Search" },
   { view: "subject", label: "By Subject" },
-  { view: "instructor", label: "By Instructor" },
-  { view: "crn", label: "By CRN" },
 ];
 
-/** Props shared by the three add-course panels. */
+/** Props shared by the add-course panels. */
 export type PanelProps = {
   searchParams: ReadonlyURLSearchParams;
   /** Merge param updates into the URL; a `null`/empty value deletes the key. */
@@ -30,7 +28,7 @@ export type PanelProps = {
 };
 
 /**
- * The "Add Courses" surface: three tabs (By Subject, By Instructor, By CRN).
+ * The "Add Courses" surface: two tabs (Search, By Subject).
  * The active tab and each tab's in-progress selection live in the URL search
  * params, so the state is shareable, survives refresh, and works with the back
  * button.
@@ -91,17 +89,11 @@ export function AddCourses() {
       </div>
 
       <div className="border-edge bg-surface rounded-b-xl border px-4 py-8 sm:px-8 sm:py-10">
+        {view === "search" && (
+          <SearchByQuery searchParams={searchParams} setParams={setParams} />
+        )}
         {view === "subject" && (
           <SearchBySubject searchParams={searchParams} setParams={setParams} />
-        )}
-        {view === "instructor" && (
-          <SearchByInstructor
-            searchParams={searchParams}
-            setParams={setParams}
-          />
-        )}
-        {view === "crn" && (
-          <SearchByCRN searchParams={searchParams} setParams={setParams} />
         )}
       </div>
     </div>

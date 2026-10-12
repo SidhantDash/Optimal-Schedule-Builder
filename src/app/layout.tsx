@@ -8,8 +8,7 @@ import { APPS } from "@devdogsuga/sdk/brand";
 import { type Metadata } from "next";
 import { headers } from "next/headers";
 import { Hanken_Grotesk, Alan_Sans, Cascadia_Code } from "next/font/google";
-import { db } from "~/server/db";
-import { availableTerms } from "~/server/db/schema";
+import { fetchTerms } from "~/hooks/queries/useTerms";
 import { THEME_INIT_SCRIPT } from "~/config/theme-init-script";
 
 const sans = Hanken_Grotesk({
@@ -39,15 +38,10 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // `availableTerms` is a view: Postgres carries no NOT NULL on a view's
-  // columns even though this one's can never be null (an inner join on a
-  // non-null key, grouped by non-null columns), so introspection types them
-  // as nullable. Same non-null assertion `TermProvider`'s own PostgREST
-  // query already makes for the identical reason.
-  const initialTerms = (await db.select().from(availableTerms)).map((term) => ({
-    academicPeriod: term.academicPeriod!,
-    description: term.description!,
-  }));
+  // The catalog's terms seed the term picker so the first paint has them. A
+  // catalog that is down costs the picker its seed, not the page: the browser
+  // asks again.
+  const initialTerms = await fetchTerms().catch(() => []);
   // Minted per-request in `middleware.ts`, carried on the plain `x-nonce`
   // request header for exactly this purpose -- see that file's doc comment.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
@@ -64,7 +58,7 @@ export default async function RootLayout({
             tiny; the ThemeSwitcher owns it after hydration. Nonced so it
             still runs under the enforcing `script-src 'nonce-…'
             'strict-dynamic'` policy -- see `middleware.ts` and
-            `scheduleBuilderCsp` (`~/config/csp.ts`). Byte-identical to
+            `dogDaysCsp` (`~/config/csp.ts`). Byte-identical to
             `global-error.tsx`'s copy (shared via `THEME_INIT_SCRIPT`), which
             earns CSP trust through a content hash instead, since it has no
             `headers()` access to a nonce. */}

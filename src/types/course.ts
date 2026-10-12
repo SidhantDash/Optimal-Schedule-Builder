@@ -1,17 +1,11 @@
 /**
- * One course offering (section) for the current term, joined with its course
- * and instructor. Sourced by querying the base `offerings`/`courses`/
- * `instructors` tables directly (there is no search matview).
+ * One section of a course, as the section picker shows it. Taken from the
+ * catalog's `Section`, which carries the instructor as one name.
  */
 export interface SectionRow {
   crn: number;
-  courseId: number;
-  abbr: string;
-  courseNumber: string;
-  title: string;
-  maxCreditHours: number;
-  firstName: string | null;
-  lastName: string | null;
+  /** The instructor's name, or null for "Staff". */
+  professor: string | null;
   seatsAvailable: number;
   cancelled: boolean;
 }

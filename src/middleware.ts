@@ -8,23 +8,9 @@ import {
 } from "@devdogsuga/sdk/headers";
 import { updateSession } from "~/supabase/middleware";
 import { env } from "~/env";
-import { scheduleBuilderCsp } from "~/config/csp";
+import { dogDaysCsp } from "~/config/csp";
 
-const PUBLIC_PATHS = [
-  "/",
-  "/auth/callback",
-  "/courses",
-  "/plans",
-  "/generate-schedule",
-  "/manual-entry",
-  "/questionnaire",
-  "/past-credits",
-  "/credit-data",
-  "/settings",
-  "/survey",
-  "/route-map",
-  "/distance-page",
-];
+const PUBLIC_PATHS = ["/", "/auth/callback", "/courses", "/plans"];
 
 // Authoritative header application -- see @devdogsuga/sdk/headers'
 // `applySecurityHeaders` doc comment for why middleware, not just
@@ -59,10 +45,11 @@ export async function middleware(request: NextRequest) {
   // (bootstrap module, __NEXT_DATA__, font preloads) off the request's
   // Content-Security-Policy(-Report-Only) header, not the response's.
   const nonce = generateNonce();
-  const csp = scheduleBuilderCsp({
+  const csp = dogDaysCsp({
     environment: env.DEPLOY_ENV,
-    supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321",
-    sentryDsn: env.NEXT_PUBLIC_SCHEDULE_BUILDER_SENTRY_DSN,
+    supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL,
+    catalogUrl: env.NEXT_PUBLIC_CATALOG_URL,
+    sentryDsn: env.NEXT_PUBLIC_SENTRY_DSN,
     nonce,
   });
   const headersInput: SecurityHeadersInput = {

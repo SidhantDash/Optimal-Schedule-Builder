@@ -1,29 +1,3 @@
-import type { InferSelectModel } from "drizzle-orm";
-import type {
-  buildings,
-  courses,
-  instructors,
-  meetings,
-  offerings,
-  subjects,
-} from "~/server/db/schema";
-
-// ─── Raw DB row types (inferred from Drizzle schema) ─────────────────────────
-
-export type DbOffering = InferSelectModel<typeof offerings>;
-export type DbCourse = InferSelectModel<typeof courses>;
-export type DbMeeting = InferSelectModel<typeof meetings>;
-export type DbInstructor = InferSelectModel<typeof instructors>;
-export type DbBuilding = InferSelectModel<typeof buildings>;
-export type DbSubject = InferSelectModel<typeof subjects>;
-
-/** Full offering record returned by a relational query for plan display. */
-export type OfferingWithDetails = DbOffering & {
-  course: DbCourse & { subject: DbSubject };
-  instructor: DbInstructor | null;
-  meetings: (DbMeeting & { building: DbBuilding | null })[];
-};
-
 // ─── Display types (used by WeekSchedule / DayClass) ─────────────────────────
 
 /**

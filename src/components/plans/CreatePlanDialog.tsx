@@ -13,7 +13,7 @@ import { Button } from "~/components/ui/Button";
 import { Dialog } from "~/components/ui/Dialog";
 import Combobox from "~/components/ui/Combobox";
 import { SectionExclusionList } from "~/components/courses/SectionExclusionList";
-import { useOfferingsByCourse } from "~/hooks/queries/useOfferingsByCourse";
+import { useSectionsByCourse } from "~/hooks/queries/useSectionsByCourse";
 import { useTerm } from "~/components/providers/TermProvider";
 import { useDraftPrefs } from "~/hooks/data/useDraftPrefs";
 import { useDraftCourses } from "~/hooks/data/useDraftCourses";
@@ -78,7 +78,7 @@ function CourseOfferingsSection({
   onToggleSection: (crn: number) => void;
 }) {
   const info = course.courses;
-  const { data: offerings = [] } = useOfferingsByCourse(
+  const { data: offerings = [] } = useSectionsByCourse(
     course.courseId,
     academicPeriod,
   );
@@ -287,6 +287,7 @@ export function CreatePlanDialog({ onClose }: { onClose: () => void }) {
           schedules.map((crns, i) => ({
             title: `Plan ${baseCount + i + 1}`,
             crns,
+            courseIds: includedCourses.map((c) => c.courseId),
           })),
         );
         onClose();

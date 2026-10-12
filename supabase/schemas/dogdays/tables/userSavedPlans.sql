@@ -7,6 +7,10 @@ CREATE TABLE "dogdays"."userSavedPlans" (
   "academicPeriod" integer     NOT NULL,
   "title"          text        NOT NULL,
   "crns"           integer[]   NOT NULL,
+  -- The catalog's course ids the plan was generated from. The catalog has no
+  -- lookup by CRN, so this is how a plan finds its sections again. Empty on
+  -- plans copied from the old app, which fall back to the term's draft.
+  "courseIds"      integer[]   NOT NULL DEFAULT '{}'::integer[],
   "pinned"         boolean     NOT NULL DEFAULT false,
   "createdAt"      timestamptz NOT NULL DEFAULT now(),
   "updatedAt"      timestamptz NOT NULL DEFAULT now(),
@@ -28,9 +32,11 @@ CREATE POLICY "users_own_plans" ON "dogdays"."userSavedPlans"
   WITH CHECK ((SELECT auth.uid()) = "userId");
 
 GRANT SELECT ON TABLE "dogdays"."userSavedPlans" TO "authenticated";
-GRANT INSERT ("userId", "academicPeriod", "title", "crns", "pinned")
+-- `id` is insertable so a signed-out visitor's local plans keep their ids when
+-- they sign in (the merge is then safe to run twice).
+GRANT INSERT ("id", "userId", "academicPeriod", "title", "crns", "courseIds", "pinned")
   ON TABLE "dogdays"."userSavedPlans" TO "authenticated";
-GRANT UPDATE ("userId", "academicPeriod", "title", "crns", "pinned", "updatedAt")
+GRANT UPDATE ("userId", "academicPeriod", "title", "crns", "courseIds", "pinned", "updatedAt")
   ON TABLE "dogdays"."userSavedPlans" TO "authenticated";
 GRANT DELETE ON TABLE "dogdays"."userSavedPlans" TO "authenticated";
 GRANT ALL ON TABLE "dogdays"."userSavedPlans" TO "service_role";
