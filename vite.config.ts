@@ -7,6 +7,9 @@ import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
 import path from "node:path";
 
 export default defineConfig({
+  // The docs, `devtools.config.json`'s OAuth redirect and supabase/config.toml's
+  // allowed redirect URLs all say http://localhost:3000. Vite defaults to 5173.
+  server: { port: 3000 },
   plugins: [
     // `cache.data`/`cache.cdn` replace OpenNext's R2 incremental cache +
     // in-memory revalidation queue: `kvDataAdapter()` backs fetch/`use cache`
