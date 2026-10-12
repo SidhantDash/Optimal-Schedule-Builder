@@ -1,8 +1,9 @@
 name: CI
 
-# Two checks, each reported under its own name: `validate` and `database` (the
-# main-ci ruleset requires both). The destructive gate is database.yaml and
-# destructive-gate.yaml. The app's own checks (lint, typecheck, tests, build)
+# Two required checks, each reported under its own name: `validate` and
+# `database` (the main-ci ruleset requires both). The destructive gate is
+# database.yaml and destructive-gate.yaml. `contract` is advisory: it runs the
+# catalog contract tests (contract/) against the staging catalog. The app's own checks (lint, typecheck, tests, build)
 # join this file when the app stops depending on the DevDogsUGA workspace.
 #
 # `merge_group` is here because the merge queue builds a temporary branch and
@@ -74,3 +75,45 @@ jobs:
           name: types
           path: src/supabase/database.types.ts
           retention-days: 14
+
+  # The catalog contract (contract/): the SDK's generated client against a real
+  # catalog, pinned to the shapes DogDays reads. Public API, no secrets, so it
+  # runs on fork pull requests. It needs the SDK's `next` prerelease; until that
+  # is on npm it says so and passes, rather than failing every pull request for
+  # something no contributor can fix.
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Is @devdogsuga/sdk@next published?
+        id: sdk
+        run: |
+          version=$(npm view '@devdogsuga/sdk@next' version 2>/dev/null || true)
+          if [ -z "$version" ]; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::@devdogsuga/sdk has no \`next\` release on npm yet, so the catalog contract tests did not run."
+            { echo '### Catalog contract'; echo; echo 'Skipped: `@devdogsuga/sdk@next` is not on npm yet.'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "SDK_VERSION=$version" >> "$GITHUB_ENV"
+          fi
+      - name: Install
+        if: steps.sdk.outputs.published == 'true'
+        working-directory: contract
+        run: npm install --no-audit --no-fund
+      - name: The generated types satisfy the pinned shapes
+        if: steps.sdk.outputs.published == 'true'
+        working-directory: contract
+        run: npm run typecheck
+      - name: The staging catalog answers with those shapes
+        if: steps.sdk.outputs.published == 'true'
+        working-directory: contract
+        env:
+          CATALOG_URL: https://api-staging.devdogsuga.org/catalog/v1
+        run: |
+          npm test
+          { echo '### Catalog contract'; echo; echo "Passed against \`$CATALOG_URL\` with \`@devdogsuga/sdk@$SDK_VERSION\`."; } >> "$GITHUB_STEP_SUMMARY"

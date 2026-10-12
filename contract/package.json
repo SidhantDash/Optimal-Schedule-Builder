@@ -1,0 +1,19 @@
+{
+  "name": "dogdays-catalog-contract",
+  "private": true,
+  "type": "module",
+  "description": "Contract tests for the catalog API DogDays reads. Standalone on purpose: it installs and runs without the app.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@devdogsuga/sdk": "next",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
