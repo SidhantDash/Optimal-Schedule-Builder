@@ -1,0 +1,56 @@
+project_id = "dogdays"
+
+# Ports are literals, not "env(...)": `supabase seed` validates config.toml
+# against a typed schema that only interpolates env() into *string* fields.
+[api]
+enabled = true
+port = 54321
+# Only the app's own schema is served. `dogdays` is first because it is
+# PostgREST's default profile and the one `devtools setup` waits on. Do not add
+# `public`: nothing lives there.
+schemas = ["dogdays"]
+extra_search_path = ["extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "env(BASE_URL)"
+# `env(...)` is substituted only when it is the ENTIRE value. An unset one is
+# dropped from the list on a hosted push (config-push.mjs) and warned about
+# locally, so staging and production each name their own return address in
+# BASE_URL_CALLBACK. The localhost entry is for `devtools oauth` against the
+# local stack and a contributor's own project; it is the same on every
+# environment, which only ever lets a token reach the visitor's own machine.
+additional_redirect_urls = [
+  "env(BASE_URL_CALLBACK)",
+  "http://localhost:3000/auth/callback",
+]
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+
+# Sign-in is "Sign in with DevDogs" (`custom:devdogsuga`) and nothing else. The
+# provider is not a config.toml field: deploy-database.yaml registers it from
+# DEVDOGS_OAUTH_* (hosted) and `devtools oauth` registers it locally, and
+# `devtools db sync` never resets the database, so the registration survives.
+# Password and phone sign-up stay off so no account can exist without a
+# platform identity.
+[auth.email]
+enable_signup = false
+
+[auth.sms]
+enable_signup = false
+
+[analytics]
+enabled = false
+
+# The declarative schema tree (supabase/schemas/) is read and written by the
+# bundled pg-delta engine: `supabase db schema declarative generate|sync`.
+# Migrations are generated, never committed (supabase/migrations/ is ignored).
+[experimental.pgdelta]
+enabled = true

@@ -4,7 +4,8 @@
 #   1. The schema tree applies to an empty database, and applying it a second
 #      time changes nothing (a tree that does not settle would plan a change at
 #      every deploy).
-#   2. The RLS suite (pgTAP, supabase/tests/) passes against it.
+#   2. The RLS suite (pgTAP, supabase/tests/) passes against it, and so does
+#      the legacy copy and claim test (legacy-copy.test.sh).
 #   3. The TypeScript types generate from it, and the type changes against the base
 #      branch go in the job summary. The SQL the change runs is in the summary
 #      of `destructive-gate / destructive-sql`, from the same plan the deploy
@@ -63,6 +64,10 @@ fi
 
 # 2. The RLS suite.
 "$supabase" test db
+
+# 2b. The copy of the old DogDays data and the claim, end to end, against a
+# stand-in for the platform's tables (legacy-copy.test.sh).
+"$here/legacy-copy.test.sh"
 
 # 3. The types, and what changed in them.
 "$here/db-types.sh"
