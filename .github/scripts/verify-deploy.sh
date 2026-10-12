@@ -6,7 +6,7 @@
 #     signed-out request; a schema it does not serve answers 406),
 #   - a signed-out request for a user table gets an error, never rows,
 #   - the claim function is not callable without a session,
-#   - nothing else is exposed: `public` is not a served schema.
+#   - nothing else is exposed: `public` is not a served schema.  (probed with a table, since the root wants a secret key)
 #
 # Environment: API_URL (https://<ref>.supabase.co), PUBLISHABLE_KEY.
 set -euo pipefail
@@ -47,5 +47,5 @@ code=$(status dogdays POST rpc/claim_legacy_data '{}')
 case "$code" in 401 | 403) ;; *) fail "a signed-out call of claim_legacy_data answered $code, not 401/403: $(head -c 300 /tmp/verify-body)" ;; esac
 echo "ok - claim_legacy_data needs a session"
 
-code=$(status public GET '')
+code=$(status public GET 'userSavedPlans?select=*&limit=1')
 case "$code" in 406 | 404 | 400) echo "ok - public is not a served schema" ;; *) fail "the public schema answered $code; only dogdays should be served" ;; esac
