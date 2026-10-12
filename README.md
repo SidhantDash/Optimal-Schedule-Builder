@@ -42,12 +42,12 @@ feature.
 
 | Milestone | Due | What it delivers |
 | --- | --- | --- |
-| [Accessibility & Polish](https://github.com/DevDogsUGA/DogDays/milestones) | Rolling | Small first-PR fixes: labels, empty states, copy, keyboard navigation, page titles, print styles. At least four open at all times. |
-| [Data Spot-Checks](https://github.com/DevDogsUGA/DogDays/milestones) | Nov 6 | Batches of 15 Spring 2027 CRNs checked against Athena (time, days, room, instructor, part of term), with a bug filed for every mismatch. Two rounds: the weeks of Oct 26 and Nov 2. |
-| [Time Between Classes](https://github.com/DevDogsUGA/DogDays/milestones) | Nov 9 | A minimum and maximum gap between same-day classes. The minimum is a hard rule; the maximum is a soft preference, closest first. Plus a Filters UI. |
-| [Plan Sharing](https://github.com/DevDogsUGA/DogDays/milestones) | Nov 9 | A signed-in student makes a live read-only link to a saved plan, and viewers can copy it into their own plans. |
-| [Import/Export](https://github.com/DevDogsUGA/DogDays/milestones) | Nov 9 | A versioned `.dogdays.json` plan file with a validated import, and a one-way `.ics` calendar export. |
-| [Map of Classes](https://github.com/DevDogsUGA/DogDays/milestones) | Nov 18 (stretch) | Day tabs under a plan with a Google map, pins numbered in class order, and a popup with course, time, building and room. |
+| [Accessibility & Polish](https://github.com/DevDogsUGA/DogDays/milestone/14) | Rolling | Small first-PR fixes: labels, empty states, copy, keyboard navigation, page titles, print styles. At least four open at all times. |
+| [Data Spot-Checks](https://github.com/DevDogsUGA/DogDays/milestone/15) | Nov 6 | Batches of 15 Spring 2027 CRNs checked against Athena (time, days, room, instructor, part of term), with a bug filed for every mismatch. Two rounds: the weeks of Oct 26 and Nov 2. |
+| [Time Between Classes](https://github.com/DevDogsUGA/DogDays/milestone/16) | Nov 9 | A minimum and maximum gap between same-day classes. The minimum is a hard rule; the maximum is a soft preference, closest first. Plus a Filters UI. |
+| [Plan Sharing](https://github.com/DevDogsUGA/DogDays/milestone/17) | Nov 9 | A signed-in student makes a live read-only link to a saved plan, and viewers can copy it into their own plans. |
+| [Import/Export](https://github.com/DevDogsUGA/DogDays/milestone/18) | Nov 9 | A versioned `.dogdays.json` plan file with a validated import, and a one-way `.ics` calendar export. |
+| [Map of Classes](https://github.com/DevDogsUGA/DogDays/milestone/19) | Nov 18 (stretch) | Day tabs under a plan with a Google map, pins numbered in class order, and a popup with course, time, building and room. |
 
 Future work, described but not yet sliced into issues:
 Max Distance, Manual Entry, Past Credits, Prerequisites, Onboarding and
