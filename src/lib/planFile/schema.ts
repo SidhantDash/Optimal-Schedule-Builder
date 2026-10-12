@@ -1,8 +1,9 @@
 /**
  * The `.dogdays.json` plan file: one saved plan, portable between people and
  * between a signed-out browser and an account. This is the contract the
- * Import/Export milestone builds on; the schema is the foundation and nothing
- * reads or writes a file yet.
+ * Import/Export milestone builds on; the schema is the foundation. The parser
+ * (reading text, rejecting a wrong version or malformed JSON) and the
+ * serializer are starter issue work and are not here.
  *
  *     { "version": 1, "term": 202608, "name": "Plan 1",
  *       "crns": [12345, 23456], "pinned": false }
@@ -23,9 +24,6 @@ export const PLAN_FILE_VERSION = 1;
 
 /** The file's extension, with the dot. */
 export const PLAN_FILE_EXTENSION = ".dogdays.json";
-
-/** Larger than any real file by a wide margin; the importer refuses anything bigger before parsing. */
-export const PLAN_FILE_MAX_BYTES = 16 * 1024;
 
 /** The plan name field in the app is limited to this many characters. */
 export const PLAN_NAME_MAX = 32;
@@ -62,49 +60,3 @@ export const planFileSchema = z.strictObject({
 });
 
 export type PlanFile = z.infer<typeof planFileSchema>;
-
-export type PlanFileResult =
-  { ok: true; plan: PlanFile } | { ok: false; error: string };
-
-/**
- * Reads the text of a `.dogdays.json` file. Never throws: a file the schema
- * refuses comes back as one sentence a member can act on.
- */
-export function parsePlanFile(text: string): PlanFileResult {
-  if (new TextEncoder().encode(text).length > PLAN_FILE_MAX_BYTES) {
-    return { ok: false, error: "This file is too large to be a DogDays plan." };
-  }
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    return { ok: false, error: "This file is not valid JSON." };
-  }
-  if (
-    typeof json === "object" &&
-    json !== null &&
-    "version" in json &&
-    json.version !== PLAN_FILE_VERSION
-  ) {
-    return {
-      ok: false,
-      error: "This plan was made by a different version of DogDays.",
-    };
-  }
-  const parsed = planFileSchema.safeParse(json);
-  if (!parsed.success) {
-    const issue = parsed.error.issues[0];
-    const where = issue?.path.length ? ` (${issue.path.join(".")})` : "";
-    return {
-      ok: false,
-      error: `This is not a DogDays plan file${where}: ${issue?.message ?? "invalid"}.`,
-    };
-  }
-  return { ok: true, plan: parsed.data };
-}
-
-/** A plan as the text of a file: stable key order, two-space indent, trailing newline. */
-export function serializePlanFile(plan: PlanFile): string {
-  const { version, term: planTerm, name, crns, pinned } = plan;
-  return `${JSON.stringify({ version, term: planTerm, name, crns, pinned }, null, 2)}\n`;
-}

@@ -7,8 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 
 /**
  * The app-wide boundary: every route this app has -- plans, courses,
- * settings, the questionnaire, manual entry, and everything else under
- * `src/app` -- falls back to this when a Server Component render, a loader,
+ * and everything else under `src/app` -- falls back to this when a Server Component render, a loader,
  * or a Server Action throws. There is no route-group segment with its own
  * boundary the way platform's `(site)`/`events` split has one each, so one
  * file covers the whole tree. It deliberately does NOT cover the root layout

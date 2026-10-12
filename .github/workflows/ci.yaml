@@ -166,7 +166,7 @@ jobs:
   # opens (deploy.yaml).
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate, database]
+    needs: [validate, database, app]
     uses: ./.github/workflows/deploy.yaml
     secrets: inherit
     permissions:
