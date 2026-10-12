@@ -8,6 +8,7 @@ import {
   MAX_INPUT_COURSES,
   type GenerationOutcome,
 } from "~/lib/generation/engine";
+import { gapConstraints } from "~/lib/generation/gapMinutes";
 import { diagnoseNoSchedules } from "~/lib/generation/diagnose";
 import {
   filterUsableSections,
@@ -27,6 +28,10 @@ export interface GenerateScheduleParams {
   minCreditHours: number;
   maxCreditHours: number;
   showFilledClasses: boolean;
+  /** Minutes; the shortest gap between two classes in a day. Omit for no bound. */
+  minGapMinutes?: number;
+  /** Minutes; the longest gap between two classes in a day. Omit for no bound. */
+  maxGapMinutes?: number;
 }
 
 const TIME_OF_DAY = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -103,6 +108,7 @@ export async function getRecommendedSchedules(
     showFilledClasses: params.showFilledClasses,
     prefStartTime: toTimeOfDay(params.prefStartTime),
     prefEndTime: toTimeOfDay(params.prefEndTime),
+    ...gapConstraints(params),
   };
 
   const outcome = generateSchedules(courses, ctx);

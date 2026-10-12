@@ -20,4 +20,16 @@ export interface GenerationConstraints {
   prefStartTime?: string;
   /** "HH:MM", the latest acceptable end time for the last class. */
   prefEndTime?: string;
+  /**
+   * The shortest acceptable gap, in minutes, between two classes on the same
+   * day. Unset means "no lower bound": a schedule with back-to-back classes is
+   * fine. Foundation for the Time Between Classes milestone; no rule reads it
+   * yet, and a rule that does must stay inactive while this is unset.
+   */
+  minGapMinutes?: number;
+  /**
+   * The longest acceptable gap, in minutes, between two classes on the same
+   * day. Unset means "no upper bound". Same contract as `minGapMinutes`.
+   */
+  maxGapMinutes?: number;
 }
