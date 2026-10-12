@@ -1,6 +1,6 @@
 ---
 name: Testing
-description: The suites this app runs — which ones need a database, and what CI actually checks.
+description: The suites this app runs, and what CI checks on your pull request.
 order: 21
 section: guides
 ---
@@ -8,59 +8,44 @@ section: guides
 # Testing
 
 ```bash
-pnpm --filter schedule-builder test       # vitest, unit — no database
-pnpm --filter schedule-builder test:db    # vitest against a live database
+pnpm test             # Vitest: unit and component tests, no database, no network
+pnpm lint             # ESLint
+pnpm typecheck        # tsc, for the app and for the Worker entry
+pnpm format:check     # Prettier
+pnpm devtools supabase test db   # the RLS suite (needs a local database)
 ```
 
-## `test`
+`pnpm test` needs nothing running. Tests that touch the catalog mock the client
+(see `src/lib/domain/catalogSections.test.ts`), so they pass offline.
 
-Plain Vitest, no database involved.
+## The RLS suite
 
-## `test:db`
+`supabase/tests/dogdays_rls.test.sql` is pgTAP. It signs in as different
+members and asserts who can read and write which rows. If you change
+`supabase/schemas/`, add the allow and the deny for it there.
 
-`vitest.db.config.ts`, run through `with-env` so it follows whichever
-database the session currently points at — the local stack, a hosted
-development project, or whatever tier you launched devtools under — not only
-your own machine. It covers the parts that only make sense against a real
-Postgres: the generated schema's query validity. (The ingestion pipeline's
-writes moved to the catalog and are tested there, in
-`apps/catalog/test/db/reconcile.db-test.ts`.) Start with a database first:
+## `contract/`
 
-```bash
-pnpm devtools supabase start
-pnpm devtools supabase db reset
-pnpm --filter @devdogsuga/supabase run codegen
-```
+`contract/` has its own tiny package and runs against the real staging catalog.
+It is how a change in the catalog's responses is noticed here before a member
+notices it.
 
-## Cloudflare preview, not `next dev`
+## Run the production build
 
-The app deploys to Workers through vinext (by [Backstage](https://github.com/DevDogsUGA/Backstage), not from this repository), and a preview build behaves
-differently from `next dev` (it runs on `workerd`, the same runtime as
-production). Copy `.dev.vars.example` to `.dev.vars`, then:
+`pnpm preview` builds the app with vinext and serves it on `workerd`, the same
+runtime as production, which behaves differently from `pnpm dev` in places
+(request-scoped storage, the Cache API). Run it before a pull request that
+touches `cloudflare/`, `middleware.ts` or caching.
 
-```bash
-pnpm --filter schedule-builder preview   # vinext build, served by workerd
-pnpm devtools jobs serve --app schedule-builder   # Workflows served locally
-```
+After editing a binding in `wrangler.jsonc`, run `pnpm types:cf` and commit the
+diff; CI fails on drift.
 
-After editing a `wrangler.jsonc` binding, regenerate the Worker types
-(`pnpm --filter schedule-builder types:cf`) and commit the diff — CI fails
-on drift.
+## What CI runs on a pull request
 
-## What CI runs
-
-`.github/workflows/ci.yaml` splits this across two jobs:
-
-- **`validate`** runs `pnpm test` (no database) for every affected package,
-  `schedule-builder` included, alongside lint, typecheck and the workspace
-  build.
-- **`database`** is unconditional, not gated on what changed. It starts a
-  local Supabase stack on an empty runner volume, generates the database
-  types from it, then runs the RLS persona suite
-  (`pnpm --filter @devdogsuga/supabase test:rls`) and `test:db` for
-  `schedule-builder`.
-
-See [Ingestion](./ingestion.md) for what the catalog's
-`reconcile.db-test.ts` actually exercises, and
-[Schedule-builder schema](./schema.md) for the
-schema those tests run against.
+| Check | What it runs |
+| --- | --- |
+| `validate` | workflow lint, Markdown links, `.env.example` has no secrets, the script tests |
+| `app` | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, with no secrets (a fork's pull request passes) |
+| `contract` | the catalog contract tests |
+| `database` | the schema applies, the RLS suite passes, the types generate and are diffed against `main` |
+| `destructive-gate` | the SQL your change runs, and the gate on data-dropping changes |

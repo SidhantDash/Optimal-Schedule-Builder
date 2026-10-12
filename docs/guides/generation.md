@@ -8,9 +8,8 @@ section: guides
 # Schedule generation
 
 Given a set of courses a student wants, the generator returns the best few
-conflict-free schedules. It reads only what
-[ingestion](./ingestion.md) has already written to
-Postgres; it never scrapes.
+conflict-free schedules. It reads sections from the
+[catalog API](./catalog.md); it never scrapes.
 
 The design goal to internalise before changing anything: **a new preference is a
 new rule, appended to a registry — not an edit to the engine.** The engine is
@@ -21,8 +20,11 @@ generic and stays that way.
 The entry point is the server action `getRecommendedSchedules`
 (`src/server/actions/generate-schedule.ts`). It:
 
-1. Resolves the requested campus name to an id.
-2. `loadSections` (`src/lib/domain/loadSections.ts`) pulls candidate sections.
+1. `loadSections` (`src/lib/domain/catalogSections.ts`) asks the catalog for
+   every section of the requested courses in the term and maps them to the
+   domain shape.
+2. Resolves the requested campus name to an id, from the campus the catalog
+   names on each section.
 3. `filterUsableSections` / `groupSectionsByCourse`
    (`src/lib/generation/prepareCourses.ts`) shape them into per-course candidate
    groups.
@@ -83,3 +85,13 @@ Every rule implements the interface in `src/lib/generation/rule.ts`:
 Existing rules to model yours on: `excludedCourses`, `excludedSections`,
 `campus`, `maxCreditHoursRule`, `minCreditHoursRule`, `preferredStartTimeRule`,
 `preferredEndTimeRule`.
+
+## Optional constraints
+
+A constraint a rule reads is optional on `GenerationConstraints`, and **unset
+means unchanged**: a request that leaves it out must build the same constraints,
+activate the same rules and return the same schedules as before the field
+existed. `minGapMinutes` and `maxGapMinutes` (time between classes) are the
+first two; `src/lib/generation/gapMinutes.test.ts` is the test to copy when you
+add another. A rule that reads one of them must report `isActive` false while
+it is unset.

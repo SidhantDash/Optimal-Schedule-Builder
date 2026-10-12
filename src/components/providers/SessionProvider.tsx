@@ -4,6 +4,7 @@ import { type PropsWithChildren, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Session } from "@supabase/supabase-js";
 import { supabase } from "~/supabase/client";
+import { claimLegacyData } from "~/lib/sync/claimLegacyData";
 import { runLocalDataMerge } from "~/lib/sync/mergeLocalData";
 
 export function useSession() {
@@ -28,6 +29,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
         queryClient.setQueryData(["session"], session);
 
         if (event === "SIGNED_IN" && session?.user) {
+          // First what the member had in the old app, then what they made
+          // signed out: the merge fills gaps and never overwrites.
+          await claimLegacyData();
           await runLocalDataMerge(session.user.id);
         }
 

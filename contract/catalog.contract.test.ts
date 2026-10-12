@@ -165,7 +165,9 @@ describe(`the catalog at ${baseUrl}`, () => {
   });
 
   it("matches a course code without regard to case or spaces", async () => {
-    const sloppy = known.courseAbbr.replace(/^([A-Za-z]+)/, "$1 ").toLowerCase();
+    const sloppy = known.courseAbbr
+      .replace(/^([A-Za-z]+)/, "$1 ")
+      .toLowerCase();
     const body = courseDetail.parse(await catalog.getCourse({ abbr: sloppy }));
     expect(body.course.courseId).toBe(known.courseId);
     expect(body.sectionCount).toBeNull();
@@ -225,12 +227,17 @@ describe(`the catalog at ${baseUrl}`, () => {
         courses: `${known.courseAbbr},ZZZZ9999`,
       }),
     );
-    expect(body.sections.every((s) => s.courseId === known.courseId)).toBe(true);
+    expect(body.sections.every((s) => s.courseId === known.courseId)).toBe(
+      true,
+    );
   });
 
   it("takes at most 15 courses in one request", async () => {
     // Distinct codes: a repeated one would be counted once.
-    const sixteen = Array.from({ length: 16 }, (_, i) => `ZZZZ${1000 + i}`).join(",");
+    const sixteen = Array.from(
+      { length: 16 },
+      (_, i) => `ZZZZ${1000 + i}`,
+    ).join(",");
     await expectApiError(
       catalog.listSections({ term: known.term, courses: sixteen }),
       400,
@@ -244,9 +251,12 @@ describe(`the catalog at ${baseUrl}`, () => {
     });
     expect(ok.status).toBe(200);
     expect(ok.headers.get("access-control-allow-origin")).toBe("*");
-    const bad = await fetch(`${baseUrl}/search?term=${known.term}&q=a&limit=51`, {
-      headers: { origin: "https://dogdays.dev" },
-    });
+    const bad = await fetch(
+      `${baseUrl}/search?term=${known.term}&q=a&limit=51`,
+      {
+        headers: { origin: "https://dogdays.dev" },
+      },
+    );
     expect(bad.status).toBe(400);
     expect(bad.headers.get("access-control-allow-origin")).toBe("*");
     errorBody.parse(await bad.json());

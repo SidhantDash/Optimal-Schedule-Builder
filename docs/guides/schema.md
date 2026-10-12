@@ -1,79 +1,47 @@
 ---
-name: Schedule-builder schema
-description: The schedule_builder schema — where it's defined, its tables, the per-request Drizzle client, and how the Drizzle schema is introspected from SQL migrations.
-order: 4
+name: DogDays database
+description: The tables DogDays owns, how they are protected, and how to change them.
+order: 20
 section: guides
 ---
 
-# Schedule-builder schema
+# DogDays database
 
-This app owns the **`schedule_builder`** Postgres schema on the shared DevDogs
-Supabase project. The monorepo-wide rules — SQL is the source of truth, RLS is
-the isolation boundary — are covered in
-[Writing a migration](https://github.com/DevDogsUGA/DevDogsUGA/blob/main/docs/platform/guides/migrations.md); this page is what is specific to
-this app.
+DogDays has its own Supabase project. It holds **only members' data**: the
+catalog lives behind the [catalog API](./catalog.md), so there are no course
+tables and no foreign keys into one. Everything is in the `dogdays` schema and
+protected by Row Level Security: a signed-in member reads and writes only the
+rows whose `userId` is theirs, and a signed-out visitor never reaches the
+database (their drafts and plans stay in the browser).
 
-## Where the schema lives
+| Table | Holds |
+| --- | --- |
+| `userPreferences` | the member's current term |
+| `userPlanDrafts` | the unsaved plan for one term: time window, campus, credit limits |
+| `userPlanDraftCourses` | the courses in a draft, by catalog `courseId`, and the CRNs excluded |
+| `userSavedPlans` | a saved schedule: its CRNs, the `courseIds` it came from, a title, pinned |
+| `legacyImports` | which old-app copies have run (service role only) |
 
-`supabase/migrations/` is the source of truth. `src/server/db/schema/generated/schema.ts`
-is **introspected from the live database** by `pnpm -F schedule-builder
-types:drizzle` and is never edited by hand; `schema/index.ts` re-exports it,
-and `server/db/relations.ts` holds the hand-written Drizzle relations. See
-[Database (Drizzle)](https://github.com/DevDogsUGA/DevDogsUGA/blob/main/docs/_shared/guides/stack/db.md) for how
-introspection works and why it needs two `drizzle-kit` configs.
+`legacyUserId` columns and `claim_legacy_data()` are how a member's plans from
+the old app (the shared DevDogs database) reach their account: the one-time copy
+fills `legacyUserId`, and the function moves those rows to the member the first
+time they sign in. Members cannot write `legacyUserId` themselves.
 
-The tables fall into three groups:
+## Changing the schema
 
-- **Lookups:** `subjects`, `colleges`, `departments`, `buildings`, `campuses`,
-  `scheduleTypes`, `terms`, `partsOfTerm`, `instructors`.
-- **Core catalog:** `courses` (with `courseDetails`, whose `prerequisites` is
-  `jsonb`), `offerings` (primary key is the **`crn`**, with a composite foreign
-  key into `partsOfTerm`), and `meetings` (per-weekday booleans, times, dates,
-  and building — plus a `locationStatus` enum).
-- **User data**, all RLS-guarded by policies in `supabase/migrations/`:
-  `userPreferences`, `userPlanDrafts`, `userPlanDraftCourses`, `userSavedPlans`.
-
-One derived object backs the term selector: the `availableTerms` view, one row
-per academic period that has at least one offering. There used to be a second
-one — an `offeringSearch` materialized view backing free-text course search —
-but it was removed when that search was replaced with subject / instructor /
-CRN filters that read the base tables directly. If you find code that still
-refreshes it, that code is stale, not the schema.
-
-## Making a schema change
+The tree in `supabase/schemas/` is the source of truth; **do not write a
+migration**. Edit the SQL, and:
 
 ```bash
-pnpm devtools new-migration --app schedule-builder <description>
+pnpm devtools db sync        # applies your edit to your database and regenerates the types
+pnpm devtools supabase test db   # the RLS suite
 ```
 
-writes an empty `supabase/migrations/<timestamp>_schedule_builder_<description>.sql`.
-Put the DDL — and any RLS policies it needs — in it by hand, the same way
-platform does (see [Writing a migration](https://github.com/DevDogsUGA/DevDogsUGA/blob/main/docs/platform/guides/migrations.md)'s "What does a
-table with its policies look like in one migration?"). Then replay it and
-re-introspect:
+Every table change needs a test in `supabase/tests/` that asserts what is
+allowed **and** what is denied. A pull request shows the SQL it runs and the
+type changes in its checks; a change that drops or rewrites data needs a DevOps
+member to add `allow-destructive`.
 
-```bash
-pnpm devtools supabase db reset              # drop, replay every migration, run the seeds
-pnpm --filter @devdogsuga/supabase run codegen   # generate the Database types (gitignored)
-pnpm -F schedule-builder types:drizzle       # re-introspect the Drizzle schema
-```
-
-If you added tables or foreign keys, add the matching relations to
-`src/server/db/relations.ts` by hand, then commit the migration, the
-regenerated schema, and the relations change together.
-
-## The Drizzle client
-
-`src/server/db/index.ts` exports a `db` proxy that builds a **per-request**
-Drizzle client, keyed through `vinext/cache`'s `cacheForRequest` against
-vinext's own per-request store (an `AsyncLocalStorage`-backed context torn down
-once the request finishes). Deployed, it connects through the `HYPERDRIVE`
-binding and closes the pool after the response streams (`after`, from
-`next/server`); with no `HYPERDRIVE` binding — the development environment —
-it falls back to a single process-wide client built from `env.DB_URL`.
-
-Because the proxy needs a request context, code that runs **outside** one — a
-Cloudflare Workflow step, a script — must build its own client with the exported
-`createScheduleBuilderDb(url, max)` instead. The catalog Worker's scrape does the
-same with its own client (`apps/catalog/src/db/client.ts`). Reaching for the `db` proxy from a Workflow step is a runtime failure, not
-a type error, so it is worth knowing before you write one.
+The TypeScript types (`src/supabase/database.types.ts`) are generated and never
+committed. `pnpm devtools db types --download` fetches the ones CI built for your
+checkout if you would rather not run Docker.

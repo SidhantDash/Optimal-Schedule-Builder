@@ -48,7 +48,8 @@ if (options) {
         showBranding: false,
         isNameRequired: false,
         isEmailRequired: false,
-        buttonLabel: "Feedback",
+        triggerLabel: "Feedback",
+        triggerAriaLabel: "Send feedback about DogDays",
         submitButtonLabel: "Send feedback",
         formTitle: "Send feedback",
         messagePlaceholder:

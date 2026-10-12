@@ -3,8 +3,9 @@ name: CI
 # Two required checks, each reported under its own name: `validate` and
 # `database` (the main-ci ruleset requires both). The destructive gate is
 # database.yaml and destructive-gate.yaml. `contract` is advisory: it runs the
-# catalog contract tests (contract/) against the staging catalog. The app's own checks (lint, typecheck, tests, build)
-# join this file when the app stops depending on the DevDogsUGA workspace.
+# catalog contract tests (contract/) against the staging catalog. `app` is the
+# app's own lint, typecheck, tests and build, with no secrets; the ruleset
+# should require it too once DevDogsUGA's PRODUCT_REQUIRED_CHECKS lists it.
 #
 # `merge_group` is here because the merge queue builds a temporary branch and
 # waits for these checks on it: without the trigger a queued pull request waits
@@ -77,6 +78,43 @@ jobs:
           name: types
           path: src/supabase/database.types.ts
           retention-days: 14
+
+  # The app: lint, typecheck, unit tests and a production build, with no
+  # secrets, so a fork's pull request runs it. It needs the generated database
+  # types, which the `database` job builds from THIS commit's schema (the
+  # `types` artifact), so a pull request that changes a table is typechecked
+  # against its own change.
+  app:
+    needs: database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SKIP_ENV_VALIDATION: "1"
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: Enable the pnpm this repository pins
+        run: corepack enable
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: types
+          path: src/supabase
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Format
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+      - name: Build
+        run: pnpm build
 
   # The catalog contract (contract/): the SDK's generated client against a real
   # catalog, pinned to the shapes DogDays reads. Public API, no secrets, so it

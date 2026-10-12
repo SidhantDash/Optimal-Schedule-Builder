@@ -20,10 +20,9 @@ take under an hour, name the file to change, and say how to check the result.
 [CONTRIBUTING.md](CONTRIBUTING.md) covers the pull request flow, and
 [docs/](docs/index.md) explains how the app is put together.
 
-> [!NOTE]
-> The setup docs are being rewritten for this standalone repository, so some
-> pages under `docs/` still describe the old monorepo. If something does not
-> match what you see, ask in the club Discord (the link is in CONTRIBUTING.md).
+To run it on your machine, follow
+[Set up and run DogDays](docs/getting-started/setup.md): a fork, `pnpm install`,
+`pnpm devtools setup`, `pnpm dev`.
 
 ## Roadmap
 
@@ -58,16 +57,18 @@ not on the list: UGA's policies and public data do not allow it.
 
 - **App.** Next.js on Cloudflare Workers (through vinext), in `src/`. The
   schedule engine is a rule-based search in `src/lib/generation/`.
-- **Course data.** DogDays does not scrape the registrar. It is moving to
-  read UGA's course catalog from DevDogs' public, read-only catalog API.
-- **User data.** Saved plans and preferences are moving to DogDays' own
-  Supabase project. The schema is declarative: contributors edit
+- **Course data.** DogDays does not scrape the registrar. It reads UGA's course
+  catalog from DevDogs' public, read-only catalog API
+  ([the catalog](docs/guides/catalog.md)).
+- **User data.** Saved plans and preferences live in DogDays' own Supabase
+  project. The schema is declarative: contributors edit
   `supabase/schemas/*.sql` and write an RLS test for the allow and the deny.
   There are no hand-written migrations, and the generated TypeScript types are
-  never committed (`devtools db types`, or `--download` to skip Docker).
+  never committed (`pnpm devtools db types`, or `--download` to skip Docker).
 - **Checks.** Every pull request runs `validate` (workflow lint, Markdown
-  links, `.env.example` is public-only) and `database` (the schema applies,
-  the RLS suite passes, the types generate and are diffed against `main`),
-  plus the destructive-SQL gate.
+  links, `.env.example` is public-only), `app` (lint, typecheck, tests and the
+  build, with no secrets), `contract` (the catalog's responses),
+  `database` (the schema applies, the RLS suite passes, the types generate and
+  are diffed against `main`), plus the destructive-SQL gate.
 
 The repository is licensed under the [BSD 3-Clause License](LICENSE).

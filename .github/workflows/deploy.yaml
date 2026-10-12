@@ -29,10 +29,15 @@ name: Deploy
 #                          It runs once; the ledger in the database keeps a
 #                          second run from copying anything twice.
 #
-#   NOT HERE YET: the Worker. `deploy-worker.yaml` needs the app to build
-#   standalone (it still depends on the DevDogsUGA workspace). Its two jobs,
-#   staging-worker and production-worker, attach after `staging-database` and
-#   `production-copy`; the old Worker keeps serving dogdays.dev until they do.
+#   the Worker   `staging-worker` and `production-worker` call DevDogsUGA's shared
+#                deploy-worker.yaml (upload a version, preview it at 0%, smoke test it,
+#                switch, smoke test what is live, roll back on failure). Each is OFF
+#                until its repository variable is `true`: DOGDAYS_WORKER_DEPLOY for
+#                staging, DOGDAYS_DEPLOYS_PRODUCTION for production (the same latch as
+#                the database). The first deploy of a Worker has no live version to
+#                preview beside, so it runs with DOGDAYS_WORKER_MODE=full; unset the
+#                variable afterwards. Both environments need a CLOUDFLARE_API_TOKEN
+#                secret (and, for source maps, SENTRY_AUTH_TOKEN).
 #
 # Every approved production job refuses an approver who wrote or queued the
 # change, and a candidate that is no longer the head of main.
@@ -262,3 +267,67 @@ jobs:
           fi
           bash .github/scripts/legacy-copy.sh --dry-run
           bash .github/scripts/legacy-copy.sh
+
+  # The Worker. The browser values are baked into the build, so the build is the
+  # shared workflow's `prepare_command` (the only step that reads the
+  # environment's variables), and wrangler uploads the result.
+  staging-worker:
+    needs: staging-verify
+    if: >-
+      !cancelled()
+      && vars.DOGDAYS_WORKER_DEPLOY == 'true'
+      && needs.staging-verify.result == 'success'
+    uses: DevDogsUGA/DevDogsUGA/.github/workflows/deploy-worker.yaml@ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: read
+    with:
+      environment: staging
+      tier: staging
+      use_wrangler_env: false
+      worker_dir: .
+      worker_name: staging-dogdays
+      smoke_path: dogdays
+      workers_json: workers.json
+      mode: ${{ vars.DOGDAYS_WORKER_MODE || 'versions' }}
+      sentry_project: schedule-builder
+      sourcemaps_dir: dist
+      setup_workspace: false
+      setup_command: bash .github/scripts/worker-setup.sh
+      prepare_command: bash .github/scripts/worker-build.sh
+      upload_command: pnpm exec wrangler versions upload --message "$RELEASE" --var "SENTRY_RELEASE:$RELEASE" --var "SENTRY_DSN:$SENTRY_DSN"
+      full_deploy_command: pnpm exec wrangler deploy --message "$RELEASE" --var "SENTRY_RELEASE:$RELEASE" --var "SENTRY_DSN:$SENTRY_DSN"
+      shared_ref: ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+
+  production-worker:
+    needs: [production-database, production-verify, production-copy]
+    if: >-
+      !cancelled()
+      && vars.DOGDAYS_DEPLOYS_PRODUCTION == 'true'
+      && needs.production-verify.result == 'success'
+      && (needs.production-copy.result == 'success' || needs.production-copy.result == 'skipped')
+    uses: DevDogsUGA/DevDogsUGA/.github/workflows/deploy-worker.yaml@ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: read
+    with:
+      environment: production
+      tier: production
+      use_wrangler_env: false
+      worker_dir: .
+      worker_name: production-dogdays
+      smoke_path: dogdays
+      workers_json: workers.json
+      mode: ${{ vars.DOGDAYS_WORKER_MODE || 'versions' }}
+      sentry_project: schedule-builder
+      sourcemaps_dir: dist
+      setup_workspace: false
+      setup_command: bash .github/scripts/worker-setup.sh
+      prepare_command: bash .github/scripts/worker-build.sh
+      upload_command: pnpm exec wrangler versions upload --message "$RELEASE" --var "SENTRY_RELEASE:$RELEASE" --var "SENTRY_DSN:$SENTRY_DSN"
+      full_deploy_command: pnpm exec wrangler deploy --message "$RELEASE" --var "SENTRY_RELEASE:$RELEASE" --var "SENTRY_DSN:$SENTRY_DSN"
+      self_approval_gate: true
+      require_latest: true
+      shared_ref: ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322

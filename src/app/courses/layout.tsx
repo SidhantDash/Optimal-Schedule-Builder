@@ -9,7 +9,7 @@ export default function Layout({ children }: PropsWithChildren) {
   const { draftCourses, removeCourse, isLoading } = useDraftCourses();
 
   return (
-    <main className="min-h-screen">
+    <div className="min-h-screen">
       <Navbar />
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-8 pb-4 md:px-6">
         <section className="flex grid-cols-3 grid-rows-[1fr] flex-col gap-8 md:grid">
@@ -51,6 +51,6 @@ export default function Layout({ children }: PropsWithChildren) {
           </div>
         </section>
       </div>
-    </main>
+    </div>
   );
 }

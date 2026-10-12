@@ -1,20 +1,35 @@
 ---
 name: Deployment
-description: The DogDays zone, custom domains, and the one value nothing cross-checks.
+description: How DogDays gets from a merge to dogdays.dev, and the values nothing cross-checks.
 order: 10
 section: infrastructure
 ---
 
 # Deployment
 
-Deploys to Cloudflare Workers through vinext, on its own zone, from the officers' [Backstage](https://github.com/DevDogsUGA/Backstage) repository (see [Cloudflare](https://github.com/DevDogsUGA/DevDogsUGA/blob/main/docs/toolkit/infrastructure/cloudflare.md#deploying)), at the DevDogsUGA commit its `devdogsuga.lock` pins. Nothing in this repository deploys. The zone is `dogdays.dev` in
-production and `staging.dogdays.dev` in staging, both declared as
-`custom_domain` routes in `wrangler.jsonc`.
+You never deploy. A merge to `main` runs `.github/workflows/deploy.yaml`, which
+DevOps owns.
 
-`SCHEDULE_BUILDER_URL` has to be kept in step with those by hand — nothing
-cross-checks the two. A mismatch is not a build failure; it's an OAuth
-callback that silently goes to the wrong place.
+- **Staging** (`staging.dogdays.dev`, Worker `staging-dogdays`, database project
+  `dogdays-staging`) follows `main`: the database through the shared deploy
+  blocks, then the Worker.
+- **Production** (`dogdays.dev`, Worker `production-dogdays`, database project
+  `dogdays`) waits for a DevOps approval, and the catalog check first: the
+  production catalog must serve the current and the next term.
+
+The hostnames are `custom_domain` routes in `wrangler.jsonc`, and the same
+hostnames are the `BASE_URL` values of the GitHub environments and the Supabase
+`site_url`. Nothing cross-checks them. A mismatch is not a build failure; it is a
+sign-in that returns to the wrong place.
+
+## What a build needs
+
+The browser values (`NEXT_PUBLIC_*`) are inlined **at build time**, so they come
+from the GitHub environment's variables (`API_URL`, `PUBLISHABLE_KEY`,
+`CATALOG_URL`), not from the Worker. The Worker itself only needs `DEPLOY_ENV`
+(from `wrangler.jsonc`) and, when Sentry is on, `SENTRY_DSN` and
+`SENTRY_RELEASE`. The app has no secret.
 
 In-app branding is **DogDays** throughout (mark and copy from
-`@devdogsuga/sdk/brand`), with its own light/dark zinc-and-red design driven
-by system `prefers-color-scheme` — not the platform's design language.
+`@devdogsuga/sdk/brand`), with its own light/dark zinc-and-red design driven by
+system `prefers-color-scheme`, not the platform's design language.

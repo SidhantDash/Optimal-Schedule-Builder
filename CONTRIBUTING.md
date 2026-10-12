@@ -8,7 +8,8 @@ and pick an issue. `good first issue` ones take under an hour.
 - Keep it small and focused on one change. Link the issue it closes.
 - Commit messages read `type(scope): subject`, for example
   `fix(navbar): label the account menu`.
-- Tests pass locally, and changed behavior means changed docs.
+- `pnpm test`, `pnpm lint` and `pnpm typecheck` pass locally, and changed
+  behavior means changed docs. New here? [Set up and run DogDays](docs/getting-started/setup.md).
 - A table, column or policy change is an edit to `supabase/schemas/*.sql`, with an
   RLS test that asserts the allow **and** the deny. Do not write a migration for it.
 - Never put a secret in the repository or `.env.example`. `.env.example` is
@@ -28,6 +29,8 @@ Merges are squash merges through the merge queue.
 | Check | Meaning |
 | --- | --- |
 | `validate` | workflow lint, Markdown links, `.env.example` is public-only |
+| `app` | format, lint, typecheck, unit tests and a production build, with no secrets (so it runs on a fork) |
+| `contract` | the catalog API still answers with the shapes DogDays reads |
 | `database` | the schema tree applies, the RLS suite passes, the types generate and are diffed against `main` |
 | `destructive-gate / ...` | the SQL your change runs, and the gate on data-dropping changes |
 

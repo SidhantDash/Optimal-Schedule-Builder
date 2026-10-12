@@ -1,0 +1,14 @@
+[
+  {
+    "path": "dogdays",
+    "smoke": {
+      "hosts": {
+        "staging": "staging.dogdays.dev",
+        "production": "dogdays.dev"
+      },
+      "publicPaths": ["/", "/courses", "/plans"],
+      "protectedPath": "/dashboard",
+      "protectedRedirectPrefix": "/"
+    }
+  }
+]
