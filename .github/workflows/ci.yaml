@@ -97,8 +97,8 @@ jobs:
           version=$(npm view '@devdogsuga/sdk@next' version 2>/dev/null || true)
           if [ -z "$version" ]; then
             echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::@devdogsuga/sdk has no \`next\` release on npm yet, so the catalog contract tests did not run."
-            { echo '### Catalog contract'; echo; echo 'Skipped: `@devdogsuga/sdk@next` is not on npm yet.'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::@devdogsuga/sdk has no next release on npm yet, so the catalog contract tests did not run."
+            { echo '### Catalog contract'; echo; echo 'Skipped: @devdogsuga/sdk@next is not on npm yet.'; } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "published=true" >> "$GITHUB_OUTPUT"
             echo "SDK_VERSION=$version" >> "$GITHUB_ENV"
