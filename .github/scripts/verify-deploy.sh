@@ -2,8 +2,8 @@
 # What a deployed DogDays database must do for a visitor who is not signed in
 # (the staging deploy runs this against the project it just changed):
 #
-#   - PostgREST serves the `dogdays` schema (the publishable key is accepted;
-#     a schema it does not serve answers 406, so 200 means it does),
+#   - PostgREST serves the `dogdays` schema (its tables answer 401/403 to a
+#     signed-out request; a schema it does not serve answers 406),
 #   - a signed-out request for a user table gets an error, never rows,
 #   - the claim function is not callable without a session,
 #   - nothing else is exposed: `public` is not a served schema.
@@ -22,17 +22,18 @@ status() { # status <profile> <method> <path> [body]
     ${4:+--data "$4"} "$api/rest/v1/$3"
 }
 
-# PostgREST needs a moment to reload its schema cache after a change.
+# The schema root (/rest/v1/) is the OpenAPI document and wants a secret key, so
+# the probe is a table: a served schema with the table answers 401/403 to the
+# signed-out visitor, a schema PostgREST does not serve answers 406 and a missing
+# table 404. PostgREST needs a moment to reload its schema cache after a change.
 for attempt in 1 2 3 4 5 6; do
-  code=$(status dogdays GET '')
-  [ "$code" = 200 ] && break
+  code=$(status dogdays GET 'userSavedPlans?select=*&limit=1')
+  case "$code" in 401 | 403) break ;; esac
   echo "verify-deploy: the API answered $code, waiting (attempt $attempt)"
   sleep 10
 done
-[ "$code" = 200 ] || fail "the API does not serve the dogdays schema ($code): $(head -c 300 /tmp/verify-body)"
-# A schema PostgREST does not serve answers 406; one it does answers 200 even
-# though the signed-out role may see none of its tables.
-code=$(status not_a_schema GET '')
+case "$code" in 401 | 403) ;; *) fail "the API does not serve the dogdays schema ($code): $(head -c 300 /tmp/verify-body)" ;; esac
+code=$(status not_a_schema GET 'userSavedPlans?select=*&limit=1')
 [ "$code" = 406 ] || fail "a schema that does not exist answered $code, not 406: the check above proves nothing"
 echo "ok - the API serves the dogdays schema"
 
