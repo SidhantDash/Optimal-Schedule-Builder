@@ -4,22 +4,15 @@
  * `middleware.ts`); see
  * https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client.
  *
- * Deliberately the ONLY client-side Sentry surface, mirroring
- * `apps/platform/src/instrumentation-client.ts`. There is no
- * `sentry.client.config.ts` (the older convention this file replaces) and,
- * just as deliberately, no `sentry.server.config.ts` / `instrumentation.ts`
- * server-side `Sentry.init()` call anywhere in this app: server capture is
- * wired in `cloudflare/worker.ts` via `@sentry/cloudflare`'s `withSentry`
- * instead, because it must wrap vinext's request context from the outside
- * (see the historical failure and current constraint in
- * `cloudflare/worker.ts`).
+ * Deliberately the ONLY client-side Sentry surface. Server capture is wired in
+ * `cloudflare/worker.ts` via `@sentry/cloudflare`'s `withSentry` instead,
+ * because it must wrap vinext's request context from the outside (see there).
  *
- * Minimal by design, per the workspace's settled Sentry scope: error capture
- * only. No browser tracing (`tracesSampleRate: 0` here, unconditionally --
- * NOT `tracesSampleRateFor(environment)`, which is a server-only knob) and no
- * Session Replay (no `replayIntegration()`, `integrations: []`, both replay
- * sample rates zeroed). `browserNoiseFilter` drops the known
- * extension/ad-blocker noise `@devdogsuga/sdk/telemetry` documents.
+ * Error capture plus the User Feedback widget, and nothing else. No browser
+ * tracing (`tracesSampleRate: 0`) and no Session Replay (no
+ * `replayIntegration()`, both replay sample rates zeroed): a report is what the
+ * member typed and, if they choose, a screenshot. `browserNoiseFilter` drops
+ * the known extension/ad-blocker noise `@devdogsuga/sdk/telemetry` documents.
  */
 import * as Sentry from "@sentry/nextjs";
 import {
@@ -44,7 +37,26 @@ if (options) {
   Sentry.init({
     ...options,
     tracesSampleRate: 0,
-    integrations: [],
+    integrations: [
+      // The "Feedback" button every page shows, bottom right. Reports land in
+      // Sentry's User Feedback for the DogDays project, tied to the issue
+      // that was open when the member sent them. Neither a name nor an
+      // email is required: a visitor who is not signed in can still say
+      // what is wrong.
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        showBranding: false,
+        isNameRequired: false,
+        isEmailRequired: false,
+        buttonLabel: "Feedback",
+        submitButtonLabel: "Send feedback",
+        formTitle: "Send feedback",
+        messagePlaceholder:
+          "What happened, or what would make DogDays better? If something broke, what did you expect to see?",
+        successMessageText: "Thanks, that helps the DogDays team.",
+        enableScreenshot: true,
+      }),
+    ],
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
   });
