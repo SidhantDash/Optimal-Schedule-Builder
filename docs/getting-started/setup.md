@@ -7,12 +7,16 @@ section: getting-started
 
 # Set up and run DogDays
 
-Plan on about fifteen minutes. You need no account of your own except GitHub,
-and no key: the course data is public.
+Plan on about fifteen minutes. You need a GitHub account, plus a free Supabase
+account if you use the hosted database (the default). The course data is public,
+so it needs no key.
 
 ## What you need
 
 - **Git** and a GitHub account.
+- **A free [Supabase](https://supabase.com) account**, unless you use Docker.
+  Setup asks for the project's URL, its publishable and secret keys, and its
+  session-pooler connection string, and tells you where to find each.
 - **Node.js 22.12 or newer** (24 is what CI uses; `.nvmrc` says 24).
 - **pnpm 11** (`corepack enable` picks the right one from `package.json`).
 - **Docker**, only if you want the database on your own machine. The default is
