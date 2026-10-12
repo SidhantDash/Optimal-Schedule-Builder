@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+next-env.d.ts
+out/
+dist/
+build/
+.vinext/
+.wrangler/
+coverage/
+*.tsbuildinfo
+
+# Generated types (never committed; `devtools db types` or CI makes them)
+src/supabase/database.types.ts
+.devtools/
+
+# Local configuration. `.env` is public-only; `.env.tooling` holds secrets.
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Supabase CLI scratch
+supabase/.temp/
+supabase/.branches/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
+
+# IDE
+.idea/

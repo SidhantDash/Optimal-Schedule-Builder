@@ -6,12 +6,19 @@ order: 30
 
 # Schedule Builder
 
+> [!NOTE]
+> These pages were written when DogDays was `apps/schedule-builder` in the
+> DevDogsUGA monorepo. The repository is standalone now, and the contributor
+> docs are being rewritten for it. Where a page names a monorepo path, a
+> `pnpm` workspace command or the shared platform database, trust the
+> [README](../README.md) and `CONTRIBUTING.md` first.
+
 `apps/schedule-builder` — branded "DogDays" — is the Next.js app that plans a
 UGA student's semester against real registrar data.
 
 > [!TIP]
 > Just getting started? Start at
-> [Getting started](../_shared/getting-started/prerequisites.md) instead of this
+> [Getting started](https://github.com/DevDogsUGA/DevDogsUGA/blob/main/docs/_shared/getting-started/prerequisites.md) instead of this
 > page. Picking up a task? The work is tracked as GitHub issues in the
 > [DogDays repository](https://github.com/DevDogsUGA/DogDays/issues), not in a
 > doc.
@@ -48,7 +55,7 @@ UGA student's semester against real registrar data.
 
 ## Where to go next
 
-- [Getting started](../_shared/getting-started/prerequisites.md) — set up and run this app
+- [Getting started](https://github.com/DevDogsUGA/DevDogsUGA/blob/main/docs/_shared/getting-started/prerequisites.md) — set up and run this app
 - [Where things live](./guides/where-things-live.md) — "I want to change X"
 - [Testing](./guides/testing.md) — the suites, and which ones need a database
 - [Schedule-builder schema](./guides/schema.md), [Ingestion](./guides/ingestion.md), [Schedule generation](./guides/generation.md)

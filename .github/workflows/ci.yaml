@@ -1,0 +1,76 @@
+name: CI
+
+# Two checks, each reported under its own name: `validate` and `database` (the
+# main-ci ruleset requires both). The destructive gate is database.yaml and
+# destructive-gate.yaml. The app's own checks (lint, typecheck, tests, build)
+# join this file when the app stops depending on the DevDogsUGA workspace.
+#
+# `merge_group` is here because the merge queue builds a temporary branch and
+# waits for these checks on it: without the trigger a queued pull request waits
+# forever.
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.event_name == 'merge_group' && github.run_id || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Everything that needs no app install: the workflows, the Markdown, the env manifest.
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Lint the workflows (actionlint)
+        run: |
+          set -euo pipefail
+          version=1.7.12
+          archive="actionlint_${version}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" "https://github.com/rhysd/actionlint/releases/download/v${version}/${archive}"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - name: Every relative link in the Markdown resolves
+        run: node .github/scripts/check-docs.mjs
+      # .env.example is copied into every contributor's .env: public values only.
+      - name: .env.example holds public values only
+        run: node .github/scripts/check-env-example.mjs
+      - name: The check scripts test themselves
+        run: node --test .github/scripts/*.test.mjs
+      - name: The shell scripts parse
+        run: for f in .github/scripts/*.sh; do bash -n "$f"; done
+
+  # What a pull request does to the database. Unconditional, deliberately: a
+  # security check that skips itself on a path filter is the failure mode that
+  # leaves an RLS hole unchecked. With no schema it passes in a few seconds.
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The base branch's schema and types are read from git.
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-supabase
+      - name: Apply, test and generate
+        env:
+          BASE_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event_name == 'push' && github.event.before || github.event.pull_request.base.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # A first push has no "before": compare with the commit it follows.
+          case "$BASE_SHA" in 0000000000000000000000000000000000000000|"") BASE_SHA=$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD) ;; esac
+          BASE_SHA="$BASE_SHA" bash .github/scripts/db-check.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: hashFiles('src/supabase/database.types.ts') != ''
+        with:
+          name: types
+          path: src/supabase/database.types.ts
+          retention-days: 14

@@ -1,0 +1,13 @@
+{
+  "product": "dogdays",
+  "name": "DogDays",
+  "supabase": {
+    "version": "2.117.0",
+    "schemas": ["dogdays"]
+  },
+  "types": { "kind": "typescript", "out": "src/supabase/database.types.ts" },
+  "generatedTypes": { "repo": "DevDogsUGA/DogDays" },
+  "oauth": { "redirectUris": ["http://localhost:3000/auth/callback"] },
+  "production": { "projects": ["dogdays"] },
+  "runHint": "pnpm dev"
+}
