@@ -101,7 +101,12 @@ jobs:
       environment: staging
       destructive_environment: staging-destructive
       apply_config: ${{ needs.resolve.outputs.config == 'true' }}
-      register_provider: ${{ needs.resolve.outputs.config == 'true' }}
+      # Staging holds no Supabase Management API token (an account-wide
+      # credential must not sit in an environment without reviewers), so CI
+      # cannot enable or register the sign-in provider there. It was registered
+      # once by an owner with the shared config-push.mjs (workflow-1/4a-step2.md),
+      # and a rolled client secret is registered the same way.
+      register_provider: false
       supabase_version: 2.117.0
       shared_ref: ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
 
@@ -157,12 +162,50 @@ jobs:
       plan_environment: preflight
       require_read_only_planner: true
       destructive_environment: production-destructive
-      apply_config: ${{ needs.resolve.outputs.config == 'true' }}
-      register_provider: ${{ needs.resolve.outputs.config == 'true' }}
+      # The first production deploy always pushes the configuration and registers
+      # the provider (email sign-up off, only `dogdays` served, DevDogs sign-in),
+      # whatever the run's inputs say: until the repository variable
+      # DOGDAYS_PRODUCTION_CONFIGURED is `true`. Set it after that run succeeds;
+      # from then on a config push follows a config.toml change or the input.
+      apply_config: ${{ needs.resolve.outputs.config == 'true' || vars.DOGDAYS_PRODUCTION_CONFIGURED != 'true' }}
+      register_provider: ${{ needs.resolve.outputs.config == 'true' || vars.DOGDAYS_PRODUCTION_CONFIGURED != 'true' }}
       self_approval_gate: true
       require_latest: true
       supabase_version: 2.117.0
       shared_ref: ce8e82f68ed0199cbb5d5e34f8bda08bd3dcb322
+
+  # The same checks as staging, against the production API, after the schema and
+  # configuration are in. Catches a first deploy that left Supabase's defaults
+  # (public served, no provider) behind.
+  production-verify:
+    needs: production-database
+    if: >-
+      !cancelled()
+      && vars.DOGDAYS_DEPLOYS_PRODUCTION == 'true'
+      && needs.production-database.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Read-only and public: no approval, and only the two public values and the site URL.
+    environment: production-verify
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: The API serves the schema and refuses a signed-out visitor
+        env:
+          API_URL: ${{ vars.API_URL }}
+          PUBLISHABLE_KEY: ${{ vars.PUBLISHABLE_KEY }}
+        run: bash .github/scripts/verify-deploy.sh
+      - name: DevDogs sign-in is registered, and sign-up by email is off
+        env:
+          API_URL: ${{ vars.API_URL }}
+          PUBLISHABLE_KEY: ${{ vars.PUBLISHABLE_KEY }}
+          BASE_URL: ${{ vars.BASE_URL }}
+        run: |
+          set -euo pipefail
+          settings=$(curl -fsS "$API_URL/auth/v1/settings" -H "apikey: $PUBLISHABLE_KEY")
+          echo "$settings" | jq -e '.external.email == false and .external.phone == false' >/dev/null \
+            || { echo "::error::Email or phone sign-up is still on: the configuration was not pushed."; exit 1; }
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$API_URL/auth/v1/authorize?provider=custom:devdogsuga&redirect_to=$BASE_URL")
+          [ "$code" = 302 ] || { echo "::error::custom:devdogsuga answered $code, not a redirect: the provider is not registered."; exit 1; }
 
   # The one-time copy of the old DogDays data. PLATFORM_DB_URL is a login on the
   # PLATFORM database that can read the four user tables and nothing else

@@ -101,12 +101,16 @@ jobs:
             { echo '### Catalog contract'; echo; echo 'Skipped: @devdogsuga/sdk@next is not on npm yet.'; } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "SDK_VERSION=$version" >> "$GITHUB_ENV"
+            pinned=$(node -p "require('./contract/package.json').dependencies['@devdogsuga/sdk']")
+            echo "SDK_VERSION=$pinned" >> "$GITHUB_ENV"
+            # The contract tests run against the PINNED SDK (contract/package-lock.json);
+            # a newer next is a Renovate bump, not a surprise in an unrelated build.
+            if [ "$pinned" != "$version" ]; then echo "::notice::@devdogsuga/sdk@next is $version; the contract pins $pinned."; fi
           fi
       - name: Install
         if: steps.sdk.outputs.published == 'true'
         working-directory: contract
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: The generated types satisfy the pinned shapes
         if: steps.sdk.outputs.published == 'true'
         working-directory: contract

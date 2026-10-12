@@ -48,4 +48,5 @@ case "$code" in 401 | 403) ;; *) fail "a signed-out call of claim_legacy_data an
 echo "ok - claim_legacy_data needs a session"
 
 code=$(status public GET 'userSavedPlans?select=*&limit=1')
-case "$code" in 406 | 404 | 400) echo "ok - public is not a served schema" ;; *) fail "the public schema answered $code; only dogdays should be served" ;; esac
+[ "$code" = 406 ] || fail "the public schema answered $code, not 406: only dogdays should be served (404 means public IS served and just lacks the table)"
+echo "ok - public is not a served schema"

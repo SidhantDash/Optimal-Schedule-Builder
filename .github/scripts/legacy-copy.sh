@@ -7,7 +7,7 @@
 #   SRC_URL=<platform, read-only> DST_URL=<this project> legacy-copy.sh [--dry-run] [--name NAME]
 #
 # SRC_URL    the platform database, as a role that can SELECT the four user
-#            tables and nothing else (see docs/backend/legacy-copy.md). The
+#            tables and nothing else (see .github/scripts/platform-copy-role.sql). The
 #            session is also forced read-only.
 # DST_URL    this project's database, as the deploy-tier role.
 # --dry-run  runs everything, prints the counts, rolls the destination back.

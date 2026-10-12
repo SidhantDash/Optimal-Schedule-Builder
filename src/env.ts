@@ -75,6 +75,25 @@ const server = {
       example: "http://localhost:3000",
     },
   ),
+  // User-specified (.env, or the deploy environment's variables). The catalog
+  // is public and keyless, so this is a plain URL; src/catalog reads it.
+  CATALOG_URL: define(
+    switchEnvironment({
+      local: z.url().default("https://api-staging.devdogsuga.org/catalog/v1"),
+      deployed: z.url(),
+    }),
+    {
+      doc:
+        "The platform catalog API DogDays reads courses, sections and terms " +
+        "from (src/catalog). Development defaults to the staging catalog; " +
+        "staging sets it to staging's and production to " +
+        "https://api.devdogsuga.org/catalog/v1.",
+      scope: "environment",
+      secrecy: "public",
+      build: true,
+      example: "https://api-staging.devdogsuga.org/catalog/v1",
+    },
+  ),
   CRON_SECRET: define(
     switchEnvironment({
       local: z.string().default(""),
